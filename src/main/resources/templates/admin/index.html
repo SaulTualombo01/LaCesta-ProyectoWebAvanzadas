@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Panel de administración · La Cesta</title>
+  <link rel="icon" type="image/png" th:href="@{/img/cesta-icon.png}">
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+  <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+<body class="admin-view">
+  <header th:replace="~{fragments/layout :: header('admin')}"></header>
+  <main id="contenido" class="container admin-page">
+    <section class="admin-heading" aria-labelledby="admin-title">
+      <div>
+        <p class="admin-kicker">Panel de administración</p>
+        <h1 id="admin-title">Inventario y catálogo</h1>
+        <p>Gestiona productos, precios, promociones y existencias.</p>
+      </div>
+      <a class="button button-light" th:href="@{/productos/nuevo}"><span aria-hidden="true">+</span> Añadir producto</a>
+    </section>
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <dl class="admin-metrics" aria-label="Estado del inventario">
+      <div><dt>Productos</dt><dd th:text="${inventario.totalElements}"></dd></div>
+      <div><dt>Stock bajo</dt><dd th:text="${stockBajo}"></dd><dd class="metric-note" th:text="|De 1 a ${limiteStockBajo} unidades|"></dd></div>
+      <div><dt>Agotados</dt><dd class="metric-alert" th:text="${agotados}"></dd></div>
+      <div><dt>En promoción</dt><dd th:text="${promociones}"></dd></div>
+    </dl>
+
+    <div class="admin-content">
+      <section class="inventory" aria-labelledby="inventory-title">
+        <div class="admin-section-title">
+          <h2 id="inventory-title">Productos</h2>
+          <p>Ordenados de menor a mayor existencia.</p>
+        </div>
+        <p class="admin-empty" th:if="${inventario.empty}">El catálogo está vacío. <a th:href="@{/productos/nuevo}">Añade el primer producto</a>.</p>
+        <table class="inventory-table" th:unless="${inventario.empty}" aria-labelledby="inventory-title">
+          <thead><tr><th scope="col">Producto</th><th scope="col">Existencias</th><th scope="col">Precio</th><th scope="col">Acción</th></tr></thead>
+          <tbody>
+            <tr th:each="producto : ${inventario.content}">
+              <th scope="row"><a th:href="@{/productos/{id}(id=${producto.id})}" th:text="${producto.nombre}"></a>
+                <small th:text="${producto.categoria.etiqueta}"></small>
+              </th>
+              <td><span class="inventory-stock"
+                        th:classappend="${producto.stock == 0 ? 'stock-empty' : (producto.stock <= limiteStockBajo ? 'stock-low' : '')}"
+                        th:text="${producto.stock == 0 ? 'Agotado' : producto.stock + ' uds.'}"></span></td>
+              <td th:text="|$${producto.precioFinal}|"></td>
+              <td><a class="inventory-edit" th:href="@{/productos/{id}/editar(id=${producto.id})}"
+                     th:aria-label="|Editar ${producto.nombre}|">Editar</a></td>
+            </tr>
+          </tbody>
+        </table>
+        <nav class="pagination" aria-label="Páginas del inventario" th:if="${inventario.totalPages > 1}">
+          <a class="button button-outline button-small" th:if="${inventario.hasPrevious()}"
+             th:href="@{/admin(page=${inventario.number - 1})}">Anterior</a>
+          <span th:text="|Página ${inventario.number + 1} de ${inventario.totalPages}|"></span>
+          <a class="button button-outline button-small" th:if="${inventario.hasNext()}"
+             th:href="@{/admin(page=${inventario.number + 1})}">Siguiente</a>
+        </nav>
+      </section>
+
+      <aside class="admin-store-preview" aria-labelledby="preview-title">
+        <div class="admin-section-title">
+          <h2 id="preview-title">Vista de tienda</h2>
+          <a th:href="@{/productos}">Abrir catálogo <span aria-hidden="true">↗</span></a>
+        </div>
+        <div th:replace="~{fragments/store-carousel :: carousel}"></div>
+      </aside>
+    </div>
+  </main>
+  <script th:src="@{/js/store-carousel.js}" defer></script>
+</body>
+</html>
+

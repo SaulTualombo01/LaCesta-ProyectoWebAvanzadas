@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Cambiar contraseña')}"></head>
+<body class="auth-page">
+  <main class="auth-layout">
+    <section class="auth-panel">
+      <a th:replace="~{fragments/layout :: brand}"></a>
+      <div class="auth-body">
+        <h1>Cambia tu contraseña</h1>
+        <div th:if="${invalidToken}">
+          <p class="notice notice-error" role="alert">Este enlace ya no está disponible. Solicita otro y ábrelo en el mismo navegador.</p>
+          <a class="button" th:href="@{/recuperar}">Solicitar otro enlace</a>
+        </div>
+        <form class="form-stack" th:unless="${invalidToken}" th:action="@{/restablecer}" method="post" th:object="${form}">
+          <input type="hidden" th:field="*{code}">
+          <div class="field">
+            <label for="password">Contraseña nueva</label>
+            <input id="password" name="password" type="password" autocomplete="new-password"
+                   minlength="10" maxlength="72" required aria-describedby="password-help password-error"
+                   th:aria-invalid="${#fields.hasErrors('password')}">
+            <p id="password-help" class="hint">Usa al menos 10 caracteres.</p>
+            <p id="password-error" class="field-error"><span th:errors="*{password}"></span></p>
+          </div>
+          <button class="button" type="submit">Guardar contraseña</button>
+        </form>
+        <p class="auth-switch"><a th:href="@{/ingresar}">Volver a iniciar sesión</a></p>
+      </div>
+    </section>
+    <div th:replace="~{fragments/layout :: photo}"></div>
+  </main>
+</body>
+</html>

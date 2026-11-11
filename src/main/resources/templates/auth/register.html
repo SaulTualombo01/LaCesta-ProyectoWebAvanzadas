@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Crear cuenta')}"></head>
+<body class="auth-page">
+  <main class="auth-layout">
+    <section class="auth-panel">
+      <a th:replace="~{fragments/layout :: brand}"></a>
+      <div class="auth-body">
+        <h1>Crea tu cuenta</h1>
+        <p class="notice notice-error" role="alert" th:if="${authError}" th:text="${authError}"></p>
+        <form class="form-stack" th:action="@{/registro}" method="post" th:object="${form}">
+          <div class="field">
+            <label for="name">Nombre</label>
+            <input id="name" th:field="*{name}" autocomplete="name" maxlength="80" required
+                   aria-describedby="name-error" th:aria-invalid="${#fields.hasErrors('name')}">
+            <p id="name-error" class="field-error"><span th:errors="*{name}"></span></p>
+          </div>
+          <div class="field">
+            <label for="email">Correo electrónico</label>
+            <input id="email" th:field="*{email}" type="email" autocomplete="email" maxlength="254" required
+                   aria-describedby="email-error" th:aria-invalid="${#fields.hasErrors('email')}">
+            <p id="email-error" class="field-error"><span th:errors="*{email}"></span></p>
+          </div>
+          <div class="field">
+            <label for="password">Contraseña</label>
+            <input id="password" name="password" type="password" autocomplete="new-password"
+                   minlength="10" maxlength="72" required aria-describedby="password-help password-error"
+                   th:aria-invalid="${#fields.hasErrors('password')}">
+            <p id="password-help" class="hint">Usa al menos 10 caracteres.</p>
+            <p id="password-error" class="field-error"><span th:errors="*{password}"></span></p>
+          </div>
+          <div class="notice notice-error" role="alert" th:if="${#fields.hasGlobalErrors()}">
+            <p th:each="mensaje : ${#fields.globalErrors()}" th:text="${mensaje}"></p>
+          </div>
+          <button class="button" type="submit">Crear cuenta</button>
+        </form>
+        <p class="auth-switch">¿Ya tienes una cuenta? <a th:href="@{/ingresar}">Inicia sesión</a></p>
+      </div>
+    </section>
+    <div th:replace="~{fragments/layout :: photo}"></div>
+  </main>
+</body>
+</html>

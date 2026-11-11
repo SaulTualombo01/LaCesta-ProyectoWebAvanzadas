@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head(${producto.nombre})}"></head>
+<body>
+  <header th:replace="~{fragments/layout :: header('productos')}"></header>
+  <main id="contenido" class="container page">
+    <a class="back-link" th:href="@{/productos}">Volver al catálogo</a>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <article class="product-detail">
+      <div class="product-media product-detail-media">
+        <img th:if="${producto.imagenRevision != null}"
+             th:src="@{/productos/{id}/imagen(id=${producto.id},v=${producto.imagenRevision})}"
+             th:alt="|Foto de ${producto.nombre}|" width="800" height="600" decoding="async">
+        <span class="photo-placeholder" th:unless="${producto.imagenRevision != null}">Sin foto</span>
+      </div>
+      <div class="product-detail-copy">
+        <p class="product-category" th:text="${producto.categoria.etiqueta}"></p>
+        <h1 th:text="${producto.nombre}"></h1>
+        <p class="product-description" th:text="${producto.descripcion}"></p>
+        <dl class="product-detail-stock">
+          <div>
+            <dt th:text="${producto.precioPromocional != null ? 'Precio promocional' : 'Precio'}"></dt>
+            <dd class="price-group">
+              <strong class="price" th:text="|$${producto.precioFinal}|"></strong>
+              <del th:if="${producto.precioPromocional != null}" th:text="|$${producto.precio}|"></del>
+            </dd>
+          </div>
+          <div>
+            <dt>Disponibilidad</dt>
+            <dd class="stock" th:classappend="${producto.stock == 0} ? ' sold-out' : ''"
+                th:text="${producto.stock == 0 ? 'Agotado' : producto.stock + ' en stock'}"></dd>
+          </div>
+        </dl>
+        <p class="reference" th:text="|Código ${producto.id}|"></p>
+        <a class="button button-outline" th:href="@{/chat}">Comentar en la sala</a>
+      </div>
+    </article>
+    <section class="product-admin" aria-label="Administración del producto" sec:authorize="hasRole('ADMIN')">
+      <a class="button" th:href="@{/productos/{id}/editar(id=${producto.id})}">Editar producto</a>
+      <details class="delete-product">
+        <summary>Eliminar producto</summary>
+        <p th:text="|¿Confirmas que quieres eliminar «${producto.nombre}»? Se retirará del catálogo.|"></p>
+        <form th:action="@{/productos/{id}/eliminar(id=${producto.id})}" method="post">
+          <input type="hidden" name="version" th:value="${producto.version}">
+          <input type="hidden" name="confirmar" value="true">
+          <button class="button button-danger" type="submit">Confirmar eliminación</button>
+        </form>
+      </details>
+    </section>
+  </main>
+</body>
+</html>

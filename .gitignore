@@ -1,0 +1,20 @@
+/target/
+/data/
+/.idea/
+/.run/*
+!/.run/La Cesta Supabase.run.xml
+*.iml
+.env
+.env.*
+!/.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_ed25519
+*.mv.db
+*.trace.db
+*.log

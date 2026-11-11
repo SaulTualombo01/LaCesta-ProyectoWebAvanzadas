@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Página no disponible')}"></head>
+<body>
+  <main class="container page">
+    <a th:replace="~{fragments/layout :: brand}"></a>
+    <div class="error-page">
+      <h1 th:if="${status == 403}">Acceso denegado</h1>
+      <h1 th:if="${status == 404}">Página no encontrada</h1>
+      <h1 th:if="${status == 413}">El archivo es demasiado grande</h1>
+      <h1 th:if="${status != 403 and status != 404 and status != 413}">No pudimos completar la solicitud</h1>
+      <p class="intro" th:if="${status == 403}">Tu sesión no tiene permiso para realizar esta acción.</p>
+      <p class="intro" th:if="${status == 404}">El enlace puede estar desactualizado o el producto pudo haberse eliminado.</p>
+      <p class="intro" th:if="${status == 413}">Vuelve al formulario y elige una foto JPG o PNG de hasta 5 MB.</p>
+      <p class="intro" th:if="${status != 403 and status != 404 and status != 413}">Vuelve al inicio e inténtalo de nuevo.</p>
+      <a class="button" th:href="@{/}">Volver al inicio</a>
+    </div>
+  </main>
+</body>
+</html>

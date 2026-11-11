@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+  <div class="store-carousel" th:fragment="carousel" data-carousel data-theme="frescos"
+       role="group" aria-roledescription="carrusel" aria-label="Categorías destacadas">
+    <ul class="showcase-stage" aria-hidden="true">
+      <li class="showcase-card showcase-frescos" data-carousel-slide data-position="active" data-theme="frescos">
+        <img th:src="@{/img/carousel/frescos.jpg}" width="720" height="720" alt="" decoding="async">
+      </li>
+      <li class="showcase-card showcase-despensa" data-carousel-slide data-position="next" data-theme="despensa">
+        <img th:src="@{/img/carousel/despensa.jpg}" width="720" height="720" alt="" decoding="async">
+      </li>
+      <li class="showcase-card showcase-bebidas" data-carousel-slide data-position="previous" data-theme="bebidas">
+        <img th:src="@{/img/carousel/bebidas.jpg}" width="720" height="720" alt="" decoding="async">
+      </li>
+    </ul>
+    <div class="showcase-footer">
+      <div class="showcase-captions" aria-live="polite" aria-atomic="true">
+        <a data-carousel-caption th:href="@{/productos(categoria='FRUTAS_Y_VERDURAS')}">Frutas y verduras <span aria-hidden="true">↗</span></a>
+        <a data-carousel-caption th:href="@{/productos(categoria='DESPENSA')}" hidden>Despensa <span aria-hidden="true">↗</span></a>
+        <a data-carousel-caption th:href="@{/productos(categoria='BEBIDAS')}" hidden>Bebidas <span aria-hidden="true">↗</span></a>
+      </div>
+      <div class="showcase-controls" data-carousel-controls hidden>
+        <button type="button" data-carousel-step="-1" aria-label="Categoría anterior">←</button>
+        <span data-carousel-counter aria-hidden="true">1 / 3</span>
+        <button type="button" data-carousel-step="1" aria-label="Categoría siguiente">→</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+

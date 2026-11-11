@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+  <header class="editorial-header" th:fragment="header">
+    <a class="skip-link" href="#contenido">Saltar al contenido</a>
+    <nav class="container editorial-nav" aria-label="Menú principal">
+      <a class="brand editorial-brand" th:href="@{/}" aria-current="page" aria-label="La Cesta, inicio">
+        <img class="brand-mark" th:src="@{/img/cesta-icon.png}" alt="" width="44" height="44">
+        <span>La Cesta</span>
+      </a>
+      <div class="editorial-nav-start">
+        <a href="#categorias">Categorías</a>
+        <a th:href="@{/productos}">Catálogo</a>
+      </div>
+      <div class="editorial-nav-end">
+        <a th:href="@{/chat}">Sala general</a>
+        <form th:action="@{/salir}" method="post">
+          <button type="submit" class="editorial-logout">Cerrar sesión</button>
+        </form>
+      </div>
+    </nav>
+  </header>
+
+  <section class="feature-hero" th:fragment="hero" data-feature-hero
+           aria-labelledby="storefront-title" aria-roledescription="carrusel">
+    <h1 class="editorial-sr-only" id="storefront-title">La Cesta, minimarket de Quito</h1>
+    <div class="feature-controls" data-feature-controls hidden>
+      <button class="feature-toggle" type="button" data-feature-toggle hidden
+              aria-label="Pausar rotación automática"></button>
+      <div class="feature-pickers" role="group" aria-label="Elegir portada">
+        <button type="button" data-feature-select aria-pressed="true"
+                aria-controls="feature-huerta" aria-label="Frutas y verduras"></button>
+        <button type="button" data-feature-select aria-pressed="false"
+                aria-controls="feature-despensa" aria-label="Despensa"></button>
+        <button type="button" data-feature-select aria-pressed="false"
+                aria-controls="feature-bebidas" aria-label="Bebidas"></button>
+      </div>
+    </div>
+    <div data-feature-content aria-live="off" aria-atomic="false">
+      <article class="feature-slide feature-huerta" id="feature-huerta" data-feature-slide
+               role="group" aria-roledescription="diapositiva" aria-label="1 de 3">
+        <div class="feature-copy">
+          <p class="feature-category">Frutas y verduras</p>
+          <h2><span>De la huerta</span> <span>a tu mesa.</span></h2>
+          <p class="feature-description">Encuentra frutas y verduras para lo que vas a cocinar hoy.</p>
+          <a class="editorial-button" th:href="@{/productos(categoria='FRUTAS_Y_VERDURAS')}">Ver frutas y verduras <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="feature-visual">
+          <img th:src="@{/img/editorial/huerta.jpg}" alt="" width="1320" height="990" fetchpriority="high" decoding="async">
+        </div>
+      </article>
+      <article class="feature-slide feature-despensa" id="feature-despensa" data-feature-slide
+               role="group" aria-roledescription="diapositiva" aria-label="2 de 3" hidden>
+        <div class="feature-copy">
+          <p class="feature-category">Despensa</p>
+          <h2><span>Lo que siempre</span> <span>hace falta.</span></h2>
+          <p class="feature-description">Café, arroz y básicos para reponer la despensa.</p>
+          <a class="editorial-button" th:href="@{/productos(categoria='DESPENSA')}">Ver despensa <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="feature-visual">
+          <img th:src="@{/img/editorial/despensa.jpg}" alt="" width="1320" height="990" fetchpriority="low" decoding="async">
+        </div>
+      </article>
+      <article class="feature-slide feature-bebidas" id="feature-bebidas" data-feature-slide
+               role="group" aria-roledescription="diapositiva" aria-label="3 de 3" hidden>
+        <div class="feature-copy">
+          <p class="feature-category">Bebidas</p>
+          <h2><span>Algo fresco</span> <span>para tomar.</span></h2>
+          <p class="feature-description">Revisa los jugos y otras bebidas disponibles.</p>
+          <a class="editorial-button" th:href="@{/productos(categoria='BEBIDAS')}">Ver bebidas <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="feature-visual">
+          <img th:src="@{/img/editorial/bebidas.jpg}" alt="" width="1320" height="990" fetchpriority="low" decoding="async">
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <th:block th:fragment="discover">
+    <section class="container breakfast-feature" aria-labelledby="breakfast-title" data-editorial-reveal>
+      <img th:src="@{/img/editorial/mesa.jpg}" alt="" width="1320" height="743" loading="lazy" decoding="async">
+      <div class="breakfast-copy">
+        <h2 class="editorial-heading" id="breakfast-title">La primera mesa del día</h2>
+        <p>Pan de yuca, café lojano y jugo de naranjilla para el desayuno.</p>
+        <a class="editorial-button" th:href="@{/productos}">Explorar el catálogo <span aria-hidden="true">↗</span></a>
+      </div>
+    </section>
+
+    <section class="editorial-categories" id="categorias" aria-labelledby="categories-title">
+      <div class="container" data-editorial-reveal>
+        <h2 class="editorial-heading" id="categories-title">Explora por categoría</h2>
+        <div class="editorial-category-layout">
+          <div th:replace="~{fragments/store-carousel :: carousel}"></div>
+          <ul class="editorial-category-list">
+            <li th:each="opcion : ${categorias}">
+              <a th:href="@{/productos(categoria=${opcion.name()})}">
+                <span th:text="${opcion.etiqueta}"></span>
+                <span class="category-arrow" aria-hidden="true">↗</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </th:block>
+  <section class="container closing-banner" th:fragment="closing" aria-labelledby="closing-title">
+    <div class="closing-photo">
+      <img th:src="@{/img/editorial/minimarket.jpg}" alt="" width="1560" height="520" loading="lazy" decoding="async">
+      <h2 id="closing-title">Todo para tu día a día.</h2>
+    </div>
+    <ul class="closing-links">
+      <li>
+        <a th:href="@{/productos}"><span aria-hidden="true">≡</span> Productos y precios</a>
+      </li>
+      <li>
+        <a href="#categorias"><span aria-hidden="true">⟐</span> Explorar categorías</a>
+      </li>
+      <li>
+        <a th:href="@{/chat}"><span aria-hidden="true">···</span> Sala general</a>
+      </li>
+    </ul>
+  </section>
+</body>
+</html>
+

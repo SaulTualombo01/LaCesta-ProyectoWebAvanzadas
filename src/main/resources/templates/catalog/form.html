@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${productoId == null ? 'Añadir producto' : 'Editar producto'})}"></head>
+<body>
+  <header th:replace="~{fragments/layout :: header('productos')}"></header>
+  <main id="contenido" class="container page">
+    <a class="back-link" th:href="${productoId == null} ? @{/productos} : @{/productos/{id}(id=${productoId})}"
+       th:text="${productoId == null ? 'Volver al catálogo' : 'Volver al producto'}"></a>
+    <div class="page-heading">
+      <h1 th:text="${productoId == null ? 'Añadir producto' : 'Editar producto'}"></h1>
+    </div>
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <form class="form-stack product-form" method="post" enctype="multipart/form-data" th:object="${form}"
+          th:action="${productoId == null} ? @{/productos} : @{/productos/{id}(id=${productoId})}">
+      <input th:if="${productoId != null}" type="hidden" th:field="*{version}">
+      <p class="notice notice-error" th:if="${#fields.hasErrors('version')}" role="alert" th:errors="*{version}"></p>
+      <div class="notice notice-error" role="alert" th:if="${#fields.hasGlobalErrors()}">
+        <p th:each="mensaje : ${#fields.globalErrors()}" th:text="${mensaje}"></p>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label for="nombre">Nombre</label>
+          <input id="nombre" th:field="*{nombre}" maxlength="100" required
+                 aria-describedby="nombre-error" th:aria-invalid="${#fields.hasErrors('nombre')}">
+          <p id="nombre-error" class="field-error"><span th:errors="*{nombre}"></span></p>
+        </div>
+        <div class="field">
+          <label for="categoria">Categoría</label>
+          <select id="categoria" th:field="*{categoria}" required
+                  aria-describedby="categoria-error" th:aria-invalid="${#fields.hasErrors('categoria')}">
+            <option value="">Selecciona una categoría</option>
+            <option th:each="opcion : ${categorias}" th:value="${opcion.name()}" th:text="${opcion.etiqueta}"></option>
+          </select>
+          <p id="categoria-error" class="field-error"><span th:errors="*{categoria}"></span></p>
+        </div>
+      </div>
+      <div class="field">
+        <label for="descripcion">Descripción</label>
+        <textarea id="descripcion" th:field="*{descripcion}" rows="3" maxlength="500" required
+                  aria-describedby="descripcion-error" th:aria-invalid="${#fields.hasErrors('descripcion')}"></textarea>
+        <p id="descripcion-error" class="field-error"><span th:errors="*{descripcion}"></span></p>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label for="precio">Precio regular (USD)</label>
+          <input id="precio" th:field="*{precio}" type="number" min="0.01" max="999999.99" step="0.01" required
+                 aria-describedby="precio-error" th:aria-invalid="${#fields.hasErrors('precio')}">
+          <p id="precio-error" class="field-error"><span th:errors="*{precio}"></span></p>
+        </div>
+        <div class="field">
+          <label for="stock">Unidades en stock</label>
+          <input id="stock" th:field="*{stock}" type="number" min="0" max="999999" step="1" required
+                 aria-describedby="stock-error" th:aria-invalid="${#fields.hasErrors('stock')}">
+          <p id="stock-error" class="field-error"><span th:errors="*{stock}"></span></p>
+        </div>
+      </div>
+      <div class="field">
+        <label for="precioPromocional">Precio promocional (USD) <span class="optional">Opcional</span></label>
+        <input id="precioPromocional" th:field="*{precioPromocional}" type="number"
+               min="0.01" max="999999.99" step="0.01" aria-describedby="promo-help promo-error"
+               th:aria-invalid="${#fields.hasErrors('precioPromocional')}">
+        <p id="promo-help" class="hint">Debe ser menor que el precio regular. Deja el campo vacío si el producto no está en promoción.</p>
+        <p id="promo-error" class="field-error"><span th:errors="*{precioPromocional}"></span></p>
+      </div>
+      <div class="product-photo-field">
+        <div class="product-media product-photo-preview">
+          <img id="imagen-vista-previa"
+               th:src="${imagenActual != null} ? @{/productos/{id}/imagen(id=${productoId},v=${imagenActual})} : null"
+               th:hidden="${imagenActual == null}" alt="Foto del producto" width="160" height="120">
+          <span id="imagen-sin-foto" class="photo-placeholder" th:hidden="${imagenActual != null}">Sin foto</span>
+        </div>
+        <div class="field">
+          <label for="imagen">Foto del producto <span class="optional">Opcional</span></label>
+          <input id="imagen" name="imagen" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png"
+                 aria-describedby="imagen-ayuda imagen-error" th:aria-invalid="${errorImagen != null}">
+          <p id="imagen-ayuda" class="hint">JPG o PNG de hasta 5 MB.</p>
+          <p id="imagen-error" class="field-error" aria-live="polite" th:text="${errorImagen}"></p>
+          <label class="photo-remove" th:if="${imagenActual != null}">
+            <input id="quitarImagen" name="quitarImagen" type="checkbox" value="true">
+            Quitar la foto actual al guardar
+          </label>
+        </div>
+      </div>
+      <button class="button" type="submit" th:text="${productoId == null ? 'Crear producto' : 'Guardar cambios'}"></button>
+    </form>
+  </main>
+  <script th:src="@{/js/product-image.js}" defer></script>
+</body>
+</html>

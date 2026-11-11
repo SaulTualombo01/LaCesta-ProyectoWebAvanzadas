@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Iniciar sesión')}"></head>
+<body class="auth-page">
+  <main class="auth-layout">
+    <section class="auth-panel">
+      <a th:replace="~{fragments/layout :: brand}"></a>
+      <div class="auth-body">
+        <h1>Inicia sesión</h1>
+        <p class="intro">Consulta el catálogo y participa en la sala general de La Cesta.</p>
+        <p class="notice notice-error" role="alert" th:if="${param.error != null}">
+          Revisa tu correo y contraseña. Si acabas de registrarte, confirma tu correo.
+        </p>
+        <p class="notice notice-error" role="alert" th:if="${param.servicio != null}">
+          El acceso no está disponible en este momento. Inténtalo más tarde.
+        </p>
+        <p class="notice notice-error" role="alert" th:if="${param.enlace != null}">
+          El enlace no pudo validarse. Abre el correo en el navegador donde hiciste la solicitud.
+        </p>
+        <p class="notice notice-success" role="status" th:if="${param.registro != null}">
+          Revisa tu correo para confirmar la cuenta. Abre el enlace en este mismo navegador.
+        </p>
+        <p class="notice notice-success" role="status" th:if="${param.confirmada != null}">
+          Confirmaste tu correo. Ya puedes iniciar sesión.
+        </p>
+        <p class="notice notice-success" role="status" th:if="${param.restablecida != null}">
+          Tu contraseña se actualizó. Ya puedes iniciar sesión.
+        </p>
+        <p class="notice notice-success" role="status" th:if="${param.logout != null}">Cerraste sesión.</p>
+        <p class="notice" role="status" th:if="${param.sesion != null}">Vuelve a iniciar sesión para continuar.</p>
+        <form class="form-stack" th:action="@{/ingresar}" method="post">
+          <div class="field">
+            <label for="email">Correo electrónico</label>
+            <input id="email" name="email" type="email" autocomplete="username" maxlength="254" required>
+          </div>
+          <div class="field">
+            <div class="label-row">
+              <label for="password">Contraseña</label>
+              <a th:href="@{/recuperar}">¿La olvidaste?</a>
+            </div>
+            <input id="password" name="password" type="password" autocomplete="current-password" maxlength="72" required>
+          </div>
+          <button class="button" type="submit">Iniciar sesión</button>
+        </form>
+        <p class="auth-switch">¿Primera vez en La Cesta? <a th:href="@{/registro}">Crea tu cuenta</a></p>
+      </div>
+    </section>
+    <div th:replace="~{fragments/layout :: photo}"></div>
+  </main>
+</body>
+</html>

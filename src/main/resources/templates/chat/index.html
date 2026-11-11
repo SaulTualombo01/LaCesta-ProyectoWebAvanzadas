@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Sala general')}"></head>
+<body>
+  <header th:replace="~{fragments/layout :: header('chat')}"></header>
+  <main id="contenido" class="container page">
+    <div class="page-heading">
+      <div>
+        <h1>Sala general</h1>
+        <p class="intro">Comparte tu opinión sobre un producto o pregunta por su disponibilidad.</p>
+      </div>
+      <p class="presence"><strong id="chat-count">0</strong> en línea</p>
+    </div>
+    <section class="chat-shell" aria-label="Conversación de la sala general">
+      <div class="chat-top">
+        <p id="chat-status" role="status">Conectando…</p>
+        <p id="chat-notice" class="chat-notice" role="status"></p>
+      </div>
+      <ol id="chat-log" class="chat-log" role="log" aria-label="Mensajes" tabindex="0">
+        <li class="chat-message" th:each="mensaje : ${messages}" th:attr="data-message-id=${mensaje.id}">
+          <p class="chat-meta">
+            <strong th:text="${mensaje.author}">Autor</strong>
+            <span th:text="${mensaje.sentAt}">Hora</span>
+          </p>
+          <p class="chat-body" th:text="${mensaje.content}">Mensaje</p>
+        </li>
+      </ol>
+      <form id="chat-form" class="chat-form" th:attr="data-ws=@{/ws/chat}">
+        <label for="chat-input">Tu mensaje</label>
+        <div class="chat-compose">
+          <textarea id="chat-input" rows="2" maxlength="400" required></textarea>
+          <button id="chat-send" class="button" type="submit" disabled>Enviar</button>
+        </div>
+        <p id="chat-error" class="field-error" role="alert"></p>
+      </form>
+    </section>
+    <noscript><p class="notice notice-error">Activa JavaScript para enviar y recibir mensajes en tiempo real.</p></noscript>
+  </main>
+  <script th:src="@{/js/chat.js}" defer></script>
+</body>
+</html>
