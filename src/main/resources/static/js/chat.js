@@ -8,20 +8,86 @@ const status = document.querySelector("#chat-status");
 const count = document.querySelector("#chat-count");
 const notice = document.querySelector("#chat-notice");
 const error = document.querySelector("#chat-error");
+const searchInput = document.querySelector("#chat-search");
+const charCount = document.querySelector("#chat-char-count");
+const quickChips = document.querySelectorAll(".chat-chip");
+const currentUser = form?.dataset.currentUser || "";
 
 let socket;
 let synchronized = false;
 let reconnects = 0;
 
+function initialsFor(name) {
+    const clean = (name || "").trim();
+    if (!clean) return "?";
+    const words = clean.split(/\s+/);
+    if (words.length >= 2) {
+        return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return clean.slice(0, 2).toUpperCase();
+}
+
+function normalizeSearch(value) {
+    return (value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+}
+
+function applyFilter() {
+    if (!searchInput) return;
+    const term = normalizeSearch(searchInput.value);
+    for (const item of log.children) {
+        if (!term) {
+            item.hidden = false;
+            continue;
+        }
+        const text = normalizeSearch(item.textContent);
+        item.hidden = !text.includes(term);
+    }
+}
+
+function updateCharCount() {
+    if (!charCount) return;
+    const length = input.value.length;
+    charCount.textContent = `${length} / 400 caracteres · Enter para enviar (Shift+Enter nueva línea)`;
+    charCount.classList.toggle("chat-char-limit", length >= 360);
+}
+
 function appendMessage(message) {
     const nearEnd = log.scrollHeight - log.clientHeight - log.scrollTop < 60;
     const item = document.createElement("li");
     item.className = "chat-message";
+    if (currentUser && message.author === currentUser) {
+        item.classList.add("chat-message-own");
+    }
     item.dataset.messageId = message.id;
 
     const meta = document.createElement("span");
     meta.className = "chat-meta";
-    meta.textContent = message.author + " · " + message.sentAt;
+
+    const avatar = document.createElement("span");
+    avatar.className = "chat-avatar";
+    avatar.setAttribute("aria-hidden", "true");
+    avatar.textContent = initialsFor(message.author);
+
+    const author = document.createElement("strong");
+    author.className = "chat-author";
+    author.textContent = message.author;
+
+    meta.append(avatar, author);
+
+    if (message.author === "Administrador" || message.role === "ADMIN") {
+        const badge = document.createElement("span");
+        badge.className = "chat-badge";
+        badge.textContent = "Personal";
+        meta.append(badge);
+    }
+
+    const time = document.createElement("span");
+    time.textContent = "· " + message.sentAt;
+    meta.append(time);
 
     const content = document.createElement("p");
     content.className = "chat-body";
@@ -33,11 +99,13 @@ function appendMessage(message) {
         if (currentId === message.id) return;
         if (currentId > message.id) {
             log.insertBefore(item, current);
+            applyFilter();
             return;
         }
     }
     log.append(item);
     while (log.children.length > 50) log.firstElementChild.remove();
+    applyFilter();
     if (nearEnd) log.scrollTop = log.scrollHeight;
 }
 
@@ -58,6 +126,7 @@ function connect() {
                 log.replaceChildren();
                 event.messages.forEach(appendMessage);
                 pending.forEach(appendMessage);
+                applyFilter();
                 log.scrollTop = log.scrollHeight;
                 synchronized = true;
                 reconnects = 0;
@@ -93,6 +162,29 @@ function connect() {
     });
 }
 
+if (searchInput) {
+    searchInput.addEventListener("input", applyFilter);
+}
+
+input.addEventListener("input", updateCharCount);
+
+input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !event.shiftKey && !send.disabled) {
+        event.preventDefault();
+        form.requestSubmit();
+    }
+});
+
+quickChips.forEach((chip) => {
+    chip.addEventListener("click", () => {
+        const template = chip.dataset.template || "";
+        input.value = template;
+        updateCharCount();
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+    });
+});
+
 form.addEventListener("submit", (event) => {
     event.preventDefault();
     const content = input.value.trim();
@@ -104,9 +196,11 @@ form.addEventListener("submit", (event) => {
     if (socket?.readyState === WebSocket.OPEN) {
         socket.send(content);
         input.value = "";
+        updateCharCount();
         input.focus();
         log.scrollTop = log.scrollHeight;
     }
 });
 
+updateCharCount();
 connect();

@@ -13,25 +13,46 @@
     </div>
     <section class="chat-shell" aria-label="Conversación de la sala general">
       <div class="chat-top">
-        <p id="chat-status" role="status">Conectando…</p>
+        <div class="chat-top-row">
+          <p id="chat-status" role="status">Conectando…</p>
+          <div class="chat-search-box">
+            <label for="chat-search" class="sr-only">Buscar en el chat</label>
+            <input id="chat-search" class="chat-search" type="search" placeholder="Filtrar mensajes (ej. aguacate, stock)…" autocomplete="off">
+          </div>
+        </div>
         <p id="chat-notice" class="chat-notice" role="status"></p>
       </div>
       <ol id="chat-log" class="chat-log" role="log" aria-label="Mensajes" tabindex="0">
-        <li class="chat-message" th:each="mensaje : ${messages}" th:attr="data-message-id=${mensaje.id}">
+        <li class="chat-message"
+            th:each="mensaje : ${messages}"
+            th:attr="data-message-id=${mensaje.id}"
+            th:classappend="${mensaje.author == currentUser} ? ' chat-message-own' : ''">
           <p class="chat-meta">
             <strong th:text="${mensaje.author}">Autor</strong>
+            <span class="chat-badge" th:if="${mensaje.author == 'Administrador'}">Personal</span>
             <span th:text="${mensaje.sentAt}">Hora</span>
           </p>
           <p class="chat-body" th:text="${mensaje.content}">Mensaje</p>
         </li>
       </ol>
-      <form id="chat-form" class="chat-form" th:attr="data-ws=@{/ws/chat}">
+      <form id="chat-form"
+            class="chat-form"
+            th:attr="data-ws=@{/ws/chat},data-current-user=${currentUser},data-is-admin=${isAdmin}">
+        <div class="chat-quick-actions" aria-label="Consultas rápidas">
+          <span class="chat-quick-label">Consultas rápidas:</span>
+          <button type="button" class="chat-chip" data-template="¿Tienen disponibilidad de ">¿Hay stock?</button>
+          <button type="button" class="chat-chip" data-template="¿Qué promociones tienen vigentes hoy?">Promociones hoy</button>
+          <button type="button" class="chat-chip" data-template="¿Me confirman el precio actual de ">Consultar precio</button>
+        </div>
         <label for="chat-input">Tu mensaje</label>
         <div class="chat-compose">
           <textarea id="chat-input" rows="2" maxlength="400" required></textarea>
           <button id="chat-send" class="button" type="submit" disabled>Enviar</button>
         </div>
-        <p id="chat-error" class="field-error" role="alert"></p>
+        <div class="chat-form-footer">
+          <p id="chat-char-count" class="hint" aria-live="polite">0 / 400 caracteres · Enter para enviar (Shift+Enter nueva línea)</p>
+          <p id="chat-error" class="field-error" role="alert"></p>
+        </div>
       </form>
     </section>
     <noscript><p class="notice notice-error">Activa JavaScript para enviar y recibir mensajes en tiempo real.</p></noscript>
