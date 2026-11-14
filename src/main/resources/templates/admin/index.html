@@ -25,7 +25,7 @@
       <div><dt>Productos</dt><dd th:text="${inventario.totalElements}"></dd></div>
       <div><dt>Stock bajo</dt><dd th:text="${stockBajo}"></dd><dd class="metric-note" th:text="|De 1 a ${limiteStockBajo} unidades|"></dd></div>
       <div><dt>Agotados</dt><dd class="metric-alert" th:text="${agotados}"></dd></div>
-      <div><dt>En promoción</dt><dd th:text="${promociones}"></dd></div>
+      <div><dt><a th:href="@{/admin/ofertas}">En promoción</a></dt><dd th:text="${promociones}"></dd></div>
     </dl>
 
     <div class="admin-content">

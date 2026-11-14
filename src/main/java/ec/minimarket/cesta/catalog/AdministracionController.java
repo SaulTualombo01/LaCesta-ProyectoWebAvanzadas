@@ -31,5 +31,16 @@ class AdministracionController {
         model.addAttribute("promociones", productos.countByPrecioPromocionalIsNotNull());
         return "admin/index";
     }
+
+    @GetMapping("/admin/ofertas")
+    String ofertas(@RequestParam(defaultValue = "0") int page, Model model) {
+        var solicitud = PageRequest.of(Math.max(0, page), 10, Sort.by("id").descending());
+        var ofertas = productos.findByPrecioPromocionalIsNotNull(solicitud);
+        if (ofertas.isEmpty() && page > 0) {
+            return "redirect:/admin/ofertas";
+        }
+        model.addAttribute("ofertas", ofertas);
+        return "admin/offers";
+    }
 }
 

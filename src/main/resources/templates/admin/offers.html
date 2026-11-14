@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Promociones · La Cesta</title>
+  <link rel="icon" type="image/png" th:href="@{/img/cesta-icon.png}">
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+  <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+<body class="admin-view">
+  <header th:replace="~{fragments/layout :: header('admin-ofertas')}"></header>
+  <main id="contenido" class="container admin-page">
+    <section class="admin-heading" aria-labelledby="admin-title">
+      <div>
+        <h1 id="admin-title">Promociones</h1>
+        <p>Para publicar una oferta, asigna un precio promocional al producto.</p>
+      </div>
+      <a class="button button-light" th:href="@{/admin} + '#inventory-title'">Elegir producto</a>
+    </section>
+    <section class="inventory admin-offers" aria-labelledby="promociones-title">
+      <div class="admin-section-title">
+        <h2 id="promociones-title">Productos con descuento</h2>
+      </div>
+      <p class="admin-empty" th:if="${ofertas.empty}">Todavía no hay promociones guardadas.</p>
+      <table class="inventory-table" th:unless="${ofertas.empty}" aria-labelledby="promociones-title">
+        <thead><tr><th scope="col">Producto</th><th scope="col">Precios</th><th scope="col">Acción</th></tr></thead>
+        <tbody>
+          <tr th:each="producto : ${ofertas.content}">
+            <th scope="row">
+              <a th:href="@{/productos/{id}(id=${producto.id})}" th:text="${producto.nombre}"></a>
+              <small th:classappend="${producto.stock == 0} ? 'inventory-stock stock-empty' : null"
+                     th:text="${producto.stock == 0 ? 'Agotado · oculto en Ofertas' : 'Visible en Ofertas'}"></small>
+            </th>
+            <td>
+              <div class="admin-offer-prices">
+                <strong th:text="|$${producto.precioFinal}|"></strong>
+                <del th:text="|$${producto.precio}|"></del>
+              </div>
+            </td>
+            <td><a class="inventory-edit" th:href="@{/productos/{id}/editar(id=${producto.id})} + '#precioPromocional'"
+                   th:aria-label="|Editar oferta de ${producto.nombre}|">Editar oferta</a></td>
+          </tr>
+        </tbody>
+      </table>
+      <nav class="pagination" aria-label="Páginas de promociones" th:if="${ofertas.totalPages > 1}">
+        <a class="button button-outline button-small" th:if="${ofertas.hasPrevious()}"
+           th:href="@{/admin/ofertas(page=${ofertas.number - 1})}">Anterior</a>
+        <span th:text="|Página ${ofertas.number + 1} de ${ofertas.totalPages}|"></span>
+        <a class="button button-outline button-small" th:if="${ofertas.hasNext()}"
+           th:href="@{/admin/ofertas(page=${ofertas.number + 1})}">Siguiente</a>
+      </nav>
+    </section>
+  </main>
+</body>
+</html>

@@ -4,6 +4,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
@@ -24,6 +26,19 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 class ProductoController {
 
+    private static final Map<Categoria, String> CATEGORIAS_DESTACADAS = new LinkedHashMap<>();
+
+    static {
+        CATEGORIAS_DESTACADAS.put(Categoria.DESPENSA, "ofertas-despensa.jpg");
+        CATEGORIAS_DESTACADAS.put(Categoria.LACTEOS_Y_HUEVOS, "ofertas-lacteos.jpg");
+        CATEGORIAS_DESTACADAS.put(Categoria.BEBIDAS, "ofertas-bebidas.jpg");
+    }
+
+    private static final Map<Categoria, String> FOTOS_ALTERNATIVAS = Map.of(
+            Categoria.DESPENSA, "ofertas-campana-hover-despensa.jpg",
+            Categoria.LACTEOS_Y_HUEVOS, "ofertas-campana-hover-lacteos.jpg",
+            Categoria.BEBIDAS, "ofertas-campana-hover-bebidas.jpg");
+
     private final ProductoService productos;
 
     ProductoController(ProductoService productos) {
@@ -40,6 +55,27 @@ class ProductoController {
     String listado(@RequestParam(required = false) Categoria categoria,
                     @RequestParam(defaultValue = "0") int page, Model model) {
         return listado(categoria, page, false, model);
+    }
+
+    @GetMapping("/ofertas")
+    String ofertas(@RequestParam(required = false) Categoria categoria,
+                   @RequestParam(defaultValue = "0") int page, HttpServletRequest request,
+                   Model model, RedirectAttributes redirect) {
+        if (request.isUserInRole("ADMIN")) {
+            return "redirect:/admin/ofertas";
+        }
+        Page<Producto> pagina = productos.listarOfertas(categoria, Math.max(0, page));
+        if (pagina.isEmpty() && page > 0) {
+            if (categoria != null) {
+                redirect.addAttribute("categoria", categoria.name());
+            }
+            return "redirect:/ofertas";
+        }
+        model.addAttribute("pagina", pagina);
+        model.addAttribute("categoria", categoria);
+        model.addAttribute("destacadas", CATEGORIAS_DESTACADAS);
+        model.addAttribute("alternativas", FOTOS_ALTERNATIVAS);
+        return "catalog/offers";
     }
 
     @GetMapping("/productos/{id}")

@@ -1,13 +1,12 @@
 "use strict";
 
-const feature = document.querySelector("[data-feature-hero]");
-
-if (feature) {
+document.querySelectorAll("[data-feature-hero]").forEach((feature) => {
     const content = feature.querySelector("[data-feature-content]");
     const controls = feature.querySelector("[data-feature-controls]");
     const toggle = controls.querySelector("[data-feature-toggle]");
     const selectors = Array.from(controls.querySelectorAll("[data-feature-select]"));
     const slides = Array.from(content.querySelectorAll("[data-feature-slide]"));
+    const fade = feature.hasAttribute("data-feature-fade");
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const rotationDelay = 8000;
     const directions = {ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1};
@@ -23,7 +22,11 @@ if (feature) {
         active = next;
         slides.forEach((slide, position) => {
             const selected = active === position;
-            slide.hidden = !selected;
+            if (fade) {
+                slide.classList.toggle("is-active", selected);
+            } else {
+                slide.hidden = !selected;
+            }
             selectors[position].setAttribute("aria-pressed", String(selected));
         });
     }
@@ -72,13 +75,13 @@ if (feature) {
         show(active + 1);
     });
     feature.addEventListener("focusin", (event) => {
-        if (event.target !== toggle || toggle.matches(":focus-visible")) pause();
+        if (event.target !== toggle || (!fade && toggle.matches(":focus-visible"))) pause();
     });
     reducedMotion.addEventListener("change", updateRotation);
     document.addEventListener("visibilitychange", updateRotation);
     controls.hidden = false;
     updateRotation();
-}
+});
 
 if ("IntersectionObserver" in window) {
     const observer = new IntersectionObserver((entries) => {

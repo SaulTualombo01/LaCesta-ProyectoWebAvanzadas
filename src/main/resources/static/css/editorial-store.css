@@ -71,6 +71,7 @@
   white-space: nowrap;
 }
 
+.editorial-nav a.editorial-offers-link { color: #79501d; }
 .editorial-logout { cursor: pointer; }
 .editorial-nav a:not(.brand):hover,
 .editorial-logout:hover { text-decoration: underline; text-underline-offset: 0.25em; }
@@ -369,7 +370,7 @@
   .editorial-nav { grid-template-columns: 1fr auto; gap: 0 0.75rem; padding-block: 0.45rem 0.15rem; }
   .editorial-brand { grid-area: 1 / 1; font-size: 1.65rem; }
   .editorial-brand .brand-mark { width: 2.4rem; height: 2.4rem; }
-  .editorial-nav-start { grid-area: 2 / 1; gap: 1rem; }
+  .editorial-nav-start { grid-area: 2 / 1; gap: clamp(0.45rem, 2vw, 1rem); }
   .editorial-nav-end { display: contents; }
   .editorial-nav-end > a { grid-area: 2 / 2; justify-self: end; }
   .editorial-nav-end form { grid-area: 1 / 2; justify-self: end; }

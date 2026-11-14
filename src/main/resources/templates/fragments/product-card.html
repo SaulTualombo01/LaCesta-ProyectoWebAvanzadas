@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+  <li class="product-card" th:fragment="card(producto, oferta)" th:classappend="${oferta} ? 'offer-card' : null">
+    <a class="product-card-link" th:href="@{/productos/{id}(id=${producto.id})}"
+       th:aria-labelledby="|producto-${producto.id}|">
+      <div class="product-media">
+        <img th:if="${producto.imagenRevision != null}"
+             th:src="@{/productos/{id}/imagen(id=${producto.id},v=${producto.imagenRevision})}"
+             alt="" width="450" height="400" loading="lazy" decoding="async">
+        <span class="photo-placeholder" th:unless="${producto.imagenRevision != null}">Sin foto</span>
+        <span class="product-offer" th:if="${producto.precioPromocional != null}" th:text="${oferta ? 'Ahorras $' + producto.ahorro : 'En oferta'}">En oferta</span>
+      </div>
+      <div class="product-card-body">
+        <p class="product-category" th:text="${producto.categoria.etiqueta}"></p>
+        <h3 th:id="|producto-${producto.id}|" th:text="${producto.nombre}"></h3>
+        <div class="price-group">
+          <strong class="price" th:text="|$${producto.precioFinal}|"></strong>
+          <del th:if="${producto.precioPromocional != null}" th:text="|$${producto.precio}|"></del>
+        </div>
+        <p class="stock" th:classappend="${producto.stock == 0} ? ' sold-out' : ''"
+           th:text="${producto.stock == 0 ? 'Agotado' : producto.stock + ' en stock'}"></p>
+      </div>
+    </a>
+  </li>
+</body>
+</html>

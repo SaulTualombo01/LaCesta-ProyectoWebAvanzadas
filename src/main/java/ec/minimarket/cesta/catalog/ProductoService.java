@@ -28,6 +28,12 @@ class ProductoService {
         return categoria == null ? productos.findAll(solicitud) : productos.findByCategoria(categoria, solicitud);
     }
 
+    Page<Producto> listarOfertas(Categoria categoria, int pagina) {
+        var solicitud = PageRequest.of(pagina, 8, Sort.by("id").descending());
+        return categoria == null ? productos.findByPrecioPromocionalIsNotNullAndStockGreaterThan(0, solicitud)
+                : productos.findByCategoriaAndPrecioPromocionalIsNotNullAndStockGreaterThan(categoria, 0, solicitud);
+    }
+
     Producto consultar(Long id) {
         return productos.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El producto no existe."));

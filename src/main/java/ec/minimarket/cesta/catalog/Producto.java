@@ -99,6 +99,10 @@ public class Producto {
         return precioPromocional == null ? precio : precioPromocional;
     }
 
+    public BigDecimal getAhorro() {
+        return precio.subtract(getPrecioFinal());
+    }
+
     public UUID getImagenRevision() {
         return imagenRevision;
     }
