@@ -13,8 +13,6 @@ if (feature) {
     const directions = {ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1};
     let active = 0;
     let rotationRequested = true;
-    let startedWithPlay = false;
-    let pointerInside = false;
     let timer;
 
     function show(index) {
@@ -31,8 +29,7 @@ if (feature) {
     }
 
     function updateRotation() {
-        const rotating = rotationRequested && !reducedMotion.matches && !document.hidden
-            && (startedWithPlay || !pointerInside);
+        const rotating = rotationRequested && !reducedMotion.matches && !document.hidden;
         if (!rotating) {
             window.clearInterval(timer);
             timer = undefined;
@@ -49,7 +46,6 @@ if (feature) {
 
     function pause() {
         rotationRequested = false;
-        startedWithPlay = false;
         updateRotation();
     }
 
@@ -72,22 +68,11 @@ if (feature) {
             return;
         }
         rotationRequested = true;
-        startedWithPlay = true;
         updateRotation();
         show(active + 1);
     });
     feature.addEventListener("focusin", (event) => {
         if (event.target !== toggle || toggle.matches(":focus-visible")) pause();
-    });
-    feature.addEventListener("pointerenter", (event) => {
-        if (event.pointerType === "touch") return;
-        pointerInside = true;
-        updateRotation();
-    });
-    feature.addEventListener("pointerleave", (event) => {
-        if (event.pointerType === "touch") return;
-        pointerInside = false;
-        updateRotation();
     });
     reducedMotion.addEventListener("change", updateRotation);
     document.addEventListener("visibilitychange", updateRotation);

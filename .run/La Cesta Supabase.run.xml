@@ -1,0 +1,19 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="La Cesta Supabase" type="Application" factoryName="Application">
+    <envs>
+      <env name="APP_ADMIN_USER_ID" value=" 99902e1a-fd06-4c3f-bd25-8228bb0fbcb1 " />
+      <env name="DB_HOST" value="aws-1-us-east-1.pooler.supabase.com" />
+      <env name="DB_PASSWORD" value="Mifamilia123!" />
+      <env name="DB_SSL_ROOT_CERT" value="$USER_HOME$/Downloads/prod-ca-2021.crt " />
+      <env name="DB_USER" value="postgres.iwukmgzlbocbrsaaoptn" />
+      <env name="SUPABASE_PUBLISHABLE_KEY" value="sb_publishable_cIna2kTDHUZSOVYKeg70Jw_S2ORwcUN" />
+      <env name="SUPABASE_URL" value="https://iwukmgzlbocbrsaaoptn.supabase.co" />
+    </envs>
+    <option name="MAIN_CLASS_NAME" value="ec.minimarket.cesta.LaCestaApplication" />
+    <module name="la-cesta" />
+    <option name="PROGRAM_PARAMETERS" value="--server.address=127.0.0.1" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

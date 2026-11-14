@@ -44,9 +44,9 @@ public class SupabaseAuth {
     }
 
     public AuthSession signIn(String email, String password) {
-        return request(() -> http.post().uri("/token?grant_type=password")
+        return verifyAccessToken(request(() -> http.post().uri("/token?grant_type=password")
                 .contentType(MediaType.APPLICATION_JSON).body(Map.of("email", email, "password", password))
-                .retrieve().body(AuthSession.class));
+                .retrieve().body(AuthSession.class)));
     }
 
     public void register(String name, String email, String password, String challenge, String redirect) {
@@ -68,8 +68,28 @@ public class SupabaseAuth {
     }
 
     public AuthSession exchange(String code, String verifier) {
-        return request(() -> http.post().uri("/token?grant_type=pkce").contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("auth_code", code, "code_verifier", verifier)).retrieve().body(AuthSession.class));
+        return verifyAccessToken(request(() -> http.post().uri("/token?grant_type=pkce")
+                .contentType(MediaType.APPLICATION_JSON).body(Map.of("auth_code", code, "code_verifier", verifier))
+                .retrieve().body(AuthSession.class)));
+    }
+
+    private AuthSession verifyAccessToken(AuthSession session) {
+        if (session == null || session.accessToken() == null || session.accessToken().isBlank()) {
+            throw new Rejected();
+        }
+        try {
+            var user = request(() -> http.get().uri("/user")
+                    .headers(headers -> headers.setBearerAuth(session.accessToken()))
+                    .retrieve().body(Identity.class));
+            if (user == null || user.id() == null || session.user() == null
+                    || !user.id().equals(session.user().id())) {
+                throw new Rejected();
+            }
+            return new AuthSession(session.accessToken(), user);
+        } catch (Rejected | Unavailable failure) {
+            revoke(session, "local");
+            throw failure;
+        }
     }
 
     public void updatePassword(AuthSession session, String password) {
