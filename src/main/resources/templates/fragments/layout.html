@@ -21,6 +21,10 @@
         <a sec:authorize="hasRole('ADMIN')" th:href="@{/productos}" th:aria-current="${actual == 'productos'} ? 'page' : null">Vista de tienda</a>
         <a sec:authorize="!hasRole('ADMIN')" th:href="@{/}" th:aria-current="${actual == 'inicio'} ? 'page' : null">Inicio</a>
         <a sec:authorize="!hasRole('ADMIN')" th:href="@{/productos}" th:aria-current="${actual == 'productos'} ? 'page' : null">Catálogo</a>
+        <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/ofertas}"
+           th:aria-current="${actual == 'admin-ofertas'} ? 'page' : null">Promociones</a>
+        <a sec:authorize="!hasRole('ADMIN')" th:href="@{/ofertas}"
+           th:aria-current="${actual == 'ofertas'} ? 'page' : null">Ofertas</a>
         <a th:href="@{/chat}" th:aria-current="${actual == 'chat'} ? 'page' : null">Sala general</a>
       </nav>
       <form th:action="@{/salir}" method="post">

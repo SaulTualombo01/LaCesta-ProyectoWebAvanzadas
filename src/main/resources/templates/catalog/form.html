@@ -59,7 +59,7 @@
         <input id="precioPromocional" th:field="*{precioPromocional}" type="number"
                min="0.01" max="999999.99" step="0.01" aria-describedby="promo-help promo-error"
                th:aria-invalid="${#fields.hasErrors('precioPromocional')}">
-        <p id="promo-help" class="hint">Debe ser menor que el precio regular. Deja el campo vacío si el producto no está en promoción.</p>
+        <p id="promo-help" class="hint">Con stock disponible, el producto aparecerá en Ofertas. Escribe un precio menor que el regular o deja el campo vacío para retirar la oferta.</p>
         <p id="promo-error" class="field-error"><span th:errors="*{precioPromocional}"></span></p>
       </div>
       <div class="product-photo-field">

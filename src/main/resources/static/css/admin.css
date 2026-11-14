@@ -98,3 +98,9 @@
   .inventory-table th:nth-child(3), .inventory-table td:nth-child(3) { display: none; }
 }
 
+.admin-offers { margin-top: 1rem; }
+.admin-offer-prices { display: flex; flex-wrap: wrap; gap: 0.2rem 0.6rem; }
+.admin-offer-prices del { color: var(--muted); font-size: 0.85rem; }
+.admin-offers .inventory-table th:nth-child(3),
+.admin-offers .inventory-table td:nth-child(3) { display: table-cell; }
+.admin-offers .inventory-edit { white-space: normal; }

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Ofertas especiales')}"></head>
+<body class="offers-view">
+  <header th:replace="~{fragments/layout :: header('ofertas')}"></header>
+  <main id="contenido" class="container offers-page">
+    <section class="offers-hero" data-feature-hero data-feature-fade aria-labelledby="offers-title">
+      <div class="offers-hero-copy">
+        <h1 id="offers-title">Ofertas <em>especiales</em></h1>
+        <p>Despensa, bebidas y más a precio especial.</p>
+        <a class="button button-light offer-cta" th:if="${categoria != null or !pagina.empty}"
+           href="#descuentos">Ver descuentos <span aria-hidden="true">↓</span></a>
+        <a class="button button-light offer-cta" th:if="${categoria == null and pagina.empty}"
+           th:href="@{/productos}">Ver catálogo <span aria-hidden="true">↗</span></a>
+      </div>
+      <div class="offers-hero-art">
+        <div class="offers-hero-photos" data-feature-content aria-hidden="true">
+          <img id="offers-photo-market" class="is-active" data-feature-slide th:src="@{/img/editorial/ofertas-campana-banner-mercado.jpg}"
+               alt="" width="1536" height="1024" fetchpriority="high" decoding="async">
+          <img id="offers-photo-pantry" data-feature-slide th:src="@{/img/editorial/ofertas-campana-banner-despensa.jpg}"
+               alt="" width="1536" height="1024" fetchpriority="low" decoding="async">
+          <img id="offers-photo-drinks" data-feature-slide th:src="@{/img/editorial/ofertas-campana-banner-bebidas.jpg}"
+               alt="" width="1536" height="1024" fetchpriority="low" decoding="async">
+        </div>
+        <div class="offers-hero-controls" data-feature-controls hidden role="group" aria-label="Imágenes de ofertas">
+          <button class="offers-rotation-toggle" type="button" data-feature-toggle hidden
+                  aria-label="Pausar rotación automática"></button>
+          <button type="button" data-feature-select aria-pressed="true"
+                  aria-controls="offers-photo-market" aria-label="Ver compra de supermercado"></button>
+          <button type="button" data-feature-select aria-pressed="false"
+                  aria-controls="offers-photo-pantry" aria-label="Ver despensa"></button>
+          <button type="button" data-feature-select aria-pressed="false"
+                  aria-controls="offers-photo-drinks" aria-label="Ver bebidas"></button>
+        </div>
+      </div>
+    </section>
+
+    <nav class="offer-shortcuts" aria-label="Categorías destacadas" data-editorial-reveal>
+      <a th:each="destacada : ${destacadas}" class="offer-shortcut"
+         th:href="@{/ofertas(categoria=${destacada.key.name()})} + '#descuentos'"
+         th:aria-current="${destacada.key == categoria} ? 'true' : null">
+        <div class="offer-shortcut-media">
+          <img th:src="@{/img/editorial/{imagen}(imagen=${destacada.value})}"
+               alt="" width="1536" height="1024" decoding="async">
+          <img class="offer-shortcut-alt"
+               th:src="@{/img/editorial/{imagen}(imagen=${alternativas.get(destacada.key)})}"
+               alt="" width="768" height="512" decoding="async">
+        </div>
+        <span class="offer-shortcut-label">
+          <span th:text="${destacada.key.etiqueta}"></span><span aria-hidden="true">↗</span>
+        </span>
+      </a>
+    </nav>
+
+    <section class="offers-list" id="descuentos" aria-labelledby="discounts-title">
+      <div class="offers-list-heading">
+        <h2 id="discounts-title" th:text="${categoria == null ? 'Descuentos disponibles' : categoria.etiqueta}"></h2>
+        <a th:if="${categoria != null}" class="button button-outline" th:href="@{/ofertas} + '#descuentos'">
+          Ver todas las ofertas
+        </a>
+      </div>
+      <div class="empty-state" th:if="${pagina.empty}">
+        <p th:text="${categoria == null ? 'Por ahora no hay productos en oferta con stock.' : 'Por ahora no hay ofertas con stock en esta categoría.'}"></p>
+      </div>
+      <ul class="product-grid" data-editorial-reveal th:unless="${pagina.empty}">
+        <th:block th:each="producto : ${pagina.content}">
+          <li th:replace="~{fragments/product-card :: card(${producto}, true)}"></li>
+        </th:block>
+      </ul>
+      <nav class="pagination" aria-label="Páginas de ofertas" th:if="${pagina.totalPages > 1}">
+        <a class="button button-outline button-small" th:if="${pagina.hasPrevious()}"
+           th:href="@{/ofertas(page=${pagina.number - 1},categoria=${categoria})} + '#descuentos'">Anterior</a>
+        <span th:text="|Página ${pagina.number + 1} de ${pagina.totalPages}|"></span>
+        <a class="button button-outline button-small" th:if="${pagina.hasNext()}"
+           th:href="@{/ofertas(page=${pagina.number + 1},categoria=${categoria})} + '#descuentos'">Siguiente</a>
+      </nav>
+    </section>
+  </main>
+  <script th:src="@{/js/editorial-store.js}" defer></script>
+</body>
+</html>
