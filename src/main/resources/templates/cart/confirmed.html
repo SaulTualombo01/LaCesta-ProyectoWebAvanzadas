@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/layout :: head('Resumen de tu compra')}">
+  <title>Resumen de tu compra · La Cesta</title>
+</head>
+
+<body>
+
+<header th:replace="~{fragments/layout :: header('carrito')}"></header>
+
+<main id="contenido"
+      class="container page"
+      data-cart-confirmed="true">
+
+  <div class="page-heading">
+    <div>
+      <p class="product-category" th:text="${'Pedido #' + pedido.id}">Pedido</p>
+      <h1>Resumen de tu compra</h1>
+      <p class="intro">
+        Verifica el desglose final de tu compra y los datos de entrega registrados.
+      </p>
+    </div>
+    <form th:action="@{/carrito/pedidos/{id}/restaurar(id=${pedido.id})}" method="post">
+      <button type="submit" class="button button-outline">
+        Volver a editar el carrito
+      </button>
+    </form>
+  </div>
+
+  <div th:replace="~{fragments/layout :: flash}"></div>
+
+  <div class="cart-layout">
+
+    <section class="cart-items-section" aria-labelledby="confirmed-items-title">
+
+      <div class="cart-section-header">
+        <h2 id="confirmed-items-title">Detalle de productos</h2>
+        <span class="presence"
+              th:text="${pedido.totalUnidades == 1 ? '1 unidad' : pedido.totalUnidades + ' unidades'}">
+          0 unidades
+        </span>
+      </div>
+
+      <ul class="cart-list">
+        <li class="cart-item cart-item-readonly" th:each="item : ${pedido.detalles}">
+          <div class="cart-item-media">
+            <img th:if="${item.producto.imagenRevision != null}"
+                 th:src="@{/productos/{id}/imagen(id=${item.producto.id},v=${item.producto.imagenRevision})}"
+                 th:alt="${item.producto.nombre}"
+                 width="110"
+                 height="95"
+                 loading="lazy"
+                 decoding="async">
+            <span class="photo-placeholder"
+                  th:if="${item.producto.imagenRevision == null}">
+              Sin foto
+            </span>
+          </div>
+
+          <div class="cart-item-info">
+            <p class="product-category" th:text="${item.producto.categoria.nombre}">Categoría</p>
+            <h3 class="cart-item-title" th:text="${item.producto.nombre}">Producto</h3>
+            <p class="hint"
+               th:text="${item.cantidad + ' × $' + item.precioUnitario}">
+              1 × $0.00
+            </p>
+          </div>
+
+          <div class="cart-item-subtotal">
+            <span class="cart-subtotal-label">Subtotal</span>
+            <strong class="price" th:text="${'$' + item.subtotal}">$0.00</strong>
+          </div>
+        </li>
+      </ul>
+
+      <div class="cart-delivery-summary">
+        <h3>Datos de entrega registrados</h3>
+        <dl class="cart-delivery-dl">
+          <div>
+            <dt>Cliente</dt>
+            <dd th:text="${cliente}">Cliente</dd>
+          </div>
+          <div>
+            <dt>Teléfono</dt>
+            <dd th:text="${pedido.telefonoContacto}">0990000000</dd>
+          </div>
+          <div class="cart-delivery-full">
+            <dt>Dirección</dt>
+            <dd th:text="${pedido.direccionEntrega}">Dirección</dd>
+          </div>
+          <div class="cart-delivery-full"
+               th:if="${!#strings.isEmpty(pedido.referenciaEntrega)}">
+            <dt>Referencia</dt>
+            <dd th:text="${pedido.referenciaEntrega}">Referencia</dd>
+          </div>
+        </dl>
+      </div>
+
+    </section>
+
+    <aside class="cart-summary-card" aria-labelledby="confirmed-total-title">
+
+      <h2 id="confirmed-total-title">Total de la compra</h2>
+
+      <dl class="cart-summary-list">
+        <div class="cart-summary-row">
+          <dt>Pedido N.°</dt>
+          <dd><strong th:text="${'#' + pedido.id}">#1</strong></dd>
+        </div>
+        <div class="cart-summary-row">
+          <dt>Subtotal</dt>
+          <dd th:text="${'$' + pedido.subtotal}">$0.00</dd>
+        </div>
+        <div class="cart-summary-row cart-summary-discount"
+             th:if="${pedido.tieneDescuentos}">
+          <dt>Ahorro por ofertas</dt>
+          <dd th:text="${'-$' + pedido.descuentoTotal}">-$0.00</dd>
+        </div>
+        <div class="cart-summary-row cart-summary-total">
+          <dt>Monto a cobrar</dt>
+          <dd th:text="${'$' + pedido.total}">$0.00</dd>
+        </div>
+      </dl>
+
+      <div class="cart-payphone-slot" id="payphone-payment-container">
+        <p class="hint">
+          Tu pedido ya quedó guardado. Continúa con la pasarela de pago o sigue explorando la tienda.
+        </p>
+        <a class="button cart-checkout-btn" th:href="@{/productos}">
+          Volver al catálogo
+        </a>
+      </div>
+
+    </aside>
+
+  </div>
+
+</main>
+
+</body>
+</html>

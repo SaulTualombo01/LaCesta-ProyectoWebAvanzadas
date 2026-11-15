@@ -1,5 +1,7 @@
 <!doctype html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
 <head>
   <meta charset="utf-8">
@@ -75,6 +77,25 @@
       </div>
 
     </a>
+
+    <div class="product-card-actions" sec:authorize="!hasRole('ADMIN')">
+      <form th:if="${producto.stock > 0}"
+            th:action="@{/carrito/agregar}"
+            method="post">
+        <input type="hidden" name="productoId" th:value="${producto.id}">
+        <input type="hidden" name="cantidad" value="1">
+        <input type="hidden" name="origen" th:value="${inicio == true ? '/' : (oferta ? '/ofertas' : '/productos')}">
+        <button type="submit" class="button button-small product-card-add">
+          Agregar al carrito
+        </button>
+      </form>
+      <button th:if="${producto.stock == 0}"
+              type="button"
+              class="button button-small product-card-add"
+              disabled>
+        Sin existencias
+      </button>
+    </div>
 
   </li>
 </ul>

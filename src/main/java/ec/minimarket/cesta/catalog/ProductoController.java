@@ -83,9 +83,13 @@ class ProductoController {
             HttpServletRequest request,
             Model model) {
 
-        return request.isUserInRole("ADMIN")
-                ? "redirect:/admin"
-                : listado(categoria, page, true, model);
+        if (request.isUserInRole("ADMIN")) {
+            return "redirect:/admin";
+        }
+        if (request.isUserInRole("DELIVERY")) {
+            return "redirect:/entregas";
+        }
+        return listado(categoria, page, true, model);
     }
 
     @GetMapping("/productos")

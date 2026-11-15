@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestión de entregas · La Cesta</title>
+  <link rel="icon" type="image/png" th:href="@{/img/cesta-icon.png}">
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+  <link rel="stylesheet" th:href="@{/css/admin.css}">
+  <script th:src="@{/js/cart.js}" defer></script>
+</head>
+
+<body class="admin-view">
+
+<header th:replace="~{fragments/layout :: header('entregas')}"></header>
+
+<main id="contenido" class="container admin-page">
+
+  <section class="admin-heading" aria-labelledby="delivery-title">
+    <div>
+      <p class="admin-kicker">Módulo de repartidor</p>
+      <h1 id="delivery-title">Gestión de entregas</h1>
+      <p>Revisa las direcciones de envío y marca los pedidos cuando hayan sido entregados.</p>
+    </div>
+  </section>
+
+  <div th:replace="~{fragments/layout :: flash}"></div>
+
+  <dl class="admin-metrics" aria-label="Estado de las entregas">
+    <div>
+      <dt>Total de pedidos</dt>
+      <dd th:text="${#lists.size(pedidos)}">0</dd>
+    </div>
+    <div>
+      <dt>En espera</dt>
+      <dd th:text="${enEspera}">0</dd>
+    </div>
+    <div>
+      <dt>Entregados</dt>
+      <dd th:text="${entregados}">0</dd>
+    </div>
+  </dl>
+
+  <section class="inventory category-inventory" aria-labelledby="delivery-list-title">
+
+    <div class="admin-section-title">
+      <h2 id="delivery-list-title">Pedidos para despacho</h2>
+      <p>Actualiza el estado de cada pedido entre «En espera» y «Entregado».</p>
+    </div>
+
+    <p class="admin-empty" th:if="${#lists.isEmpty(pedidos)}">
+      No hay pedidos pendientes ni registrados por el momento.
+    </p>
+
+    <table class="inventory-table admin-orders-table"
+           th:unless="${#lists.isEmpty(pedidos)}"
+           aria-labelledby="delivery-list-title">
+
+      <thead>
+      <tr>
+        <th scope="col">Pedido</th>
+        <th scope="col">Productos a entregar</th>
+        <th scope="col">Dirección y contacto</th>
+        <th scope="col">Total</th>
+        <th scope="col">Estado</th>
+        <th scope="col">Acción</th>
+      </tr>
+      </thead>
+
+      <tbody>
+      <tr th:each="pedido : ${pedidos}">
+
+        <th scope="row">
+          <span th:text="${'Pedido #' + pedido.id}">Pedido #1</span>
+          <small th:text="${pedido.fechaFormateada}">
+            15/11/2026 16:30
+          </small>
+        </th>
+
+        <td>
+          <ul class="admin-order-items">
+            <li th:each="det : ${pedido.detalles}">
+              <strong th:text="${det.cantidad + ' × '}">1 × </strong>
+              <span th:text="${det.producto.nombre}">Producto</span>
+            </li>
+          </ul>
+        </td>
+
+        <td>
+          <strong th:text="${pedido.direccionEntrega}">Dirección</strong>
+          <small th:text="${'Tel: ' + pedido.telefonoContacto}">Tel: 0990000000</small>
+          <small th:if="${!#strings.isEmpty(pedido.referenciaEntrega)}"
+                 th:text="${'Ref: ' + pedido.referenciaEntrega}">
+            Ref: Referencia
+          </small>
+        </td>
+
+        <td>
+          <strong class="inventory-stock" th:text="${'$' + pedido.total}">$0.00</strong>
+        </td>
+
+        <td>
+          <span class="category-status"
+                th:classappend="${pedido.entregado ? 'active' : 'pending-delivery'}"
+                th:text="${pedido.etiquetaEstado}">
+            En espera
+          </span>
+        </td>
+
+        <td>
+          <form method="post"
+                th:action="@{/entregas/{id}/estado(id=${pedido.id})}">
+            <button type="submit"
+                    class="button button-small"
+                    th:classappend="${pedido.entregado ? 'button-outline' : ''}"
+                    th:text="${pedido.entregado ? 'Pasar a en espera' : 'Marcar entregado'}">
+              Marcar entregado
+            </button>
+          </form>
+        </td>
+
+      </tr>
+      </tbody>
+
+    </table>
+
+  </section>
+
+</main>
+
+</body>
+</html>

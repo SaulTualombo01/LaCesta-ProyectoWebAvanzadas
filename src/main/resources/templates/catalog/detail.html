@@ -91,10 +91,40 @@
          th:text="${'Código ' + producto.id}">
       </p>
 
-      <a class="button button-outline"
-         th:href="@{/chat}">
-        Comentar en la sala
-      </a>
+      <div class="detail-purchase-box" sec:authorize="!hasRole('ADMIN')">
+        <form th:if="${producto.stock > 0}"
+              th:action="@{/carrito/agregar}"
+              method="post"
+              class="detail-cart-form">
+          <input type="hidden" name="productoId" th:value="${producto.id}">
+          <input type="hidden" name="origen" th:value="${'/productos/' + producto.id}">
+          <div class="detail-qty-field">
+            <label for="cantidad-detalle">Cantidad</label>
+            <input id="cantidad-detalle"
+                   name="cantidad"
+                   type="number"
+                   min="1"
+                   th:max="${producto.stock}"
+                   value="1"
+                   required>
+          </div>
+          <button type="submit" class="button">
+            Agregar al carrito
+          </button>
+        </form>
+      </div>
+
+      <div class="detail-secondary-actions">
+        <a class="button button-outline"
+           th:href="@{/chat}">
+          Comentar en la sala
+        </a>
+        <a class="button button-quiet"
+           sec:authorize="!hasRole('ADMIN')"
+           th:href="@{/carrito}">
+          Ver mi carrito
+        </a>
+      </div>
 
     </div>
 

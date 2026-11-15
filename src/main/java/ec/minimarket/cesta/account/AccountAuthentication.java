@@ -38,9 +38,11 @@ class AccountAuthentication implements AuthenticationProvider {
                     throw new BadCredentialsException("Credenciales incorrectas o correo sin confirmar.");
                 }
                 boolean administrator = user.id().equals(admin);
-                var principal = new CestaPrincipal(user.id(), displayName(user, administrator));
+                boolean delivery = !administrator && isDelivery(user);
+                String role = administrator ? "ROLE_ADMIN" : (delivery ? "ROLE_DELIVERY" : "ROLE_CUSTOMER");
+                var principal = new CestaPrincipal(user.id(), displayName(user, administrator, delivery));
                 return UsernamePasswordAuthenticationToken.authenticated(principal, null,
-                        AuthorityUtils.createAuthorityList(administrator ? "ROLE_ADMIN" : "ROLE_CUSTOMER"));
+                        AuthorityUtils.createAuthorityList(role));
             } finally {
                 auth.revoke(session, "local");
             }
@@ -64,7 +66,15 @@ class AccountAuthentication implements AuthenticationProvider {
         return email.strip().toLowerCase(Locale.ROOT);
     }
 
-    private static String displayName(SupabaseAuth.Identity identity, boolean administrator) {
+    private static boolean isDelivery(SupabaseAuth.Identity identity) {
+        if ("delivery@admin.com".equalsIgnoreCase(identity.email())) {
+            return true;
+        }
+        Object role = identity.metadata() == null ? null : identity.metadata().get("role");
+        return role instanceof String text && "DELIVERY".equalsIgnoreCase(text.strip());
+    }
+
+    private static String displayName(SupabaseAuth.Identity identity, boolean administrator, boolean delivery) {
         Object name = identity.metadata() == null ? null : identity.metadata().get("name");
         if (name instanceof String text) {
             String clean = text.replaceAll("[\\p{Cc}\\p{Cf}]", "").strip();
@@ -73,6 +83,9 @@ class AccountAuthentication implements AuthenticationProvider {
                 return clean.substring(0, clean.offsetByCodePoints(0, length));
             }
         }
-        return administrator ? "Administrador" : "Cliente";
+        if (administrator) {
+            return "Administrador";
+        }
+        return delivery ? "Repartidor" : "Cliente";
     }
 }

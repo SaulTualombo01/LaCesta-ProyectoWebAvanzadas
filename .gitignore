@@ -19,3 +19,5 @@ id_ed25519
 *.trace.db
 *.log
 *.run
+*.crt
+.vscode/
