@@ -1,7 +1,6 @@
 package ec.minimarket.cesta.cart;
 
 import ec.minimarket.cesta.account.CestaPrincipal;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -42,7 +41,10 @@ public class CarritoController {
         model.addAttribute("carritoCantidad", resumen.totalUnidades());
 
         if (!model.containsAttribute("entrega")) {
-            DatosEntregaForm entregaGuardada = carrito.obtenerDatosEntrega(session);
+            DatosEntregaForm entregaGuardada = carrito.obtenerDatosEntrega(
+                    session,
+                    usuarioId(authentication)
+            );
             model.addAttribute("entrega", entregaGuardada);
             model.addAttribute(
                     "entregaAutocompletada",
@@ -147,50 +149,52 @@ public class CarritoController {
         }
 
         try {
-            PedidoConfirmado pedido = carrito.confirmarPedido(
+            Pedido pedido = carrito.confirmarPedido(
                     session,
                     usuarioId(authentication),
-                    nombreUsuario(authentication),
                     entrega
             );
             aviso.addFlashAttribute(
                     EXITO,
-                    "Resumen del pedido " + pedido.codigo() + " confirmado y listo para el pago."
+                    "Pedido confirmado."
             );
-            return "redirect:/carrito/confirmado";
+            return "redirect:/carrito/confirmado/" + pedido.getId();
         } catch (IllegalStateException e) {
             aviso.addFlashAttribute(ERROR, e.getMessage());
             return REDIRECT_CARRITO;
         }
     }
 
-    @GetMapping("/confirmado")
+    @GetMapping("/confirmado/{id}")
     public String verConfirmado(
+            @PathVariable Long id,
             HttpSession session,
-            HttpServletRequest request,
+            Authentication authentication,
             Model model,
             RedirectAttributes aviso) {
 
-        PedidoConfirmado pedido = carrito.obtenerUltimoPedido(session);
+        Pedido pedido = carrito.consultarPedido(id);
         if (pedido == null) {
             aviso.addFlashAttribute(
                     ERROR,
-                    "No hay ningún pedido pendiente de pago. Revisa tu carrito."
+                    "No se encontró el pedido solicitado."
             );
             return REDIRECT_CARRITO;
         }
 
         model.addAttribute("pedido", pedido);
+        model.addAttribute("cliente", nombreUsuario(authentication));
         model.addAttribute("carritoCantidad", carrito.contarUnidades(session));
         return "cart/confirmed";
     }
 
-    @PostMapping("/restaurar")
+    @PostMapping("/pedidos/{id}/restaurar")
     public String restaurarPedido(
+            @PathVariable Long id,
             HttpSession session,
             RedirectAttributes aviso) {
 
-        carrito.restaurarPedidoAlCarrito(session);
+        carrito.restaurarPedidoAlCarrito(session, id);
         aviso.addFlashAttribute(
                 EXITO,
                 "Los productos volvieron a tu carrito para que puedas editarlos."

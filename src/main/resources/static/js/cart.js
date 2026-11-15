@@ -5,7 +5,7 @@
   var DELIVERY_STORAGE_KEY = "la_cesta_datos_envio_v1";
   var SCROLL_STORAGE_KEY = "la_cesta_carrito_scroll_y";
 
-  // Restaurar posición de scroll si hubo recarga tradicional (ej. al quitar producto)
+  // Restaurar posición de scroll si hubo recarga tradicional
   try {
     var savedScroll = sessionStorage.getItem(SCROLL_STORAGE_KEY);
     if (savedScroll !== null) {
@@ -18,6 +18,65 @@
   } catch (e) {
     // Ignorar
   }
+
+  function updateNavBadge(doc) {
+    var currentNavLink = document.querySelector(".nav-cart-link, .editorial-cart-link");
+    var newNavLink = doc.querySelector(".nav-cart-link, .editorial-cart-link");
+    if (currentNavLink && newNavLink) {
+      currentNavLink.innerHTML = newNavLink.innerHTML;
+    }
+  }
+
+  // Interceptar formularios "Agregar al carrito" en Inicio, Catálogo, Ofertas y Detalle
+  // para que no recarguen la página ni suban el scroll al inicio
+  var addForms = document.querySelectorAll(".product-card-actions form, .detail-cart-form");
+  addForms.forEach(function (form) {
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      var scrollY = window.scrollY;
+      var submitBtn = form.querySelector('button[type="submit"]');
+      var originalText = submitBtn ? submitBtn.textContent : "";
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+      }
+
+      fetch(form.action, {
+        method: "POST",
+        body: new FormData(form),
+        credentials: "same-origin"
+      })
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error("Error al agregar producto");
+          }
+          return response.text();
+        })
+        .then(function (html) {
+          var parser = new DOMParser();
+          var doc = parser.parseFromString(html, "text/html");
+          updateNavBadge(doc);
+          window.scrollTo(0, scrollY);
+
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "✓ Agregado";
+            submitBtn.focus({ preventScroll: true });
+            window.setTimeout(function () {
+              submitBtn.textContent = originalText;
+            }, 1000);
+          }
+        })
+        .catch(function () {
+          try {
+            sessionStorage.setItem(SCROLL_STORAGE_KEY, String(scrollY));
+          } catch (e) {
+            // Ignorar
+          }
+          form.submit();
+        });
+    });
+  });
 
   var main = document.getElementById("contenido");
   if (!main) {
@@ -78,7 +137,7 @@
 
   syncLocalStorageFromMain(main);
 
-  // Actualizar en segundo plano (sin recargar ni mover el scroll) al cambiar cantidades
+  // Actualizar en segundo plano (sin recargar ni mover el scroll) al cambiar cantidades en /carrito
   function submitCartUpdateAjax(form, focusTargetInfo) {
     var scrollY = window.scrollY;
     var formData = new FormData(form);
@@ -187,14 +246,6 @@
         }
         form.submit();
       });
-  }
-
-  function updateNavBadge(doc) {
-    var currentNavLink = document.querySelector(".nav-cart-link, .editorial-cart-link");
-    var newNavLink = doc.querySelector(".nav-cart-link, .editorial-cart-link");
-    if (currentNavLink && newNavLink) {
-      currentNavLink.innerHTML = newNavLink.innerHTML;
-    }
   }
 
   function bindCartItemEvents() {

@@ -10,7 +10,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.http.HttpStatus;
@@ -24,16 +23,17 @@ public class CarritoService {
 
     static final String ATRIBUTO_CARRITO = "LA_CESTA_CARRITO";
     static final String ATRIBUTO_ENTREGA = "LA_CESTA_DATOS_ENTREGA";
-    static final String ATRIBUTO_PEDIDO = "LA_CESTA_ULTIMO_PEDIDO";
 
     private static final Pattern PAR_JSON = Pattern.compile(
             "\"id\"\\s*:\\s*(\\d+)\\s*,\\s*\"cantidad\"\\s*:\\s*(\\d+)"
     );
 
     private final ProductoRepository productos;
+    private final PedidoRepository pedidos;
 
-    public CarritoService(ProductoRepository productos) {
+    public CarritoService(ProductoRepository productos, PedidoRepository pedidos) {
         this.productos = productos;
+        this.pedidos = pedidos;
     }
 
     public ResumenCarrito obtenerResumen(HttpSession session) {
@@ -179,10 +179,20 @@ public class CarritoService {
         }
     }
 
-    public DatosEntregaForm obtenerDatosEntrega(HttpSession session) {
+    public DatosEntregaForm obtenerDatosEntrega(HttpSession session, UUID usuarioId) {
         Object guardado = session.getAttribute(ATRIBUTO_ENTREGA);
-        if (guardado instanceof DatosEntregaForm datos) {
+        if (guardado instanceof DatosEntregaForm datos && !datos.direccion().isBlank()) {
             return datos;
+        }
+        if (usuarioId != null) {
+            Pedido ultimo = pedidos.findFirstByUsuarioIdOrderByCreadoEnDesc(usuarioId).orElse(null);
+            if (ultimo != null) {
+                return new DatosEntregaForm(
+                        ultimo.getDireccionEntrega(),
+                        ultimo.getTelefonoContacto(),
+                        ultimo.getReferenciaEntrega() == null ? "" : ultimo.getReferenciaEntrega()
+                );
+            }
         }
         return DatosEntregaForm.vacio();
     }
@@ -191,10 +201,10 @@ public class CarritoService {
         session.setAttribute(ATRIBUTO_ENTREGA, entrega.normalizado());
     }
 
-    public PedidoConfirmado confirmarPedido(
+    @Transactional
+    public Pedido confirmarPedido(
             HttpSession session,
             UUID usuarioId,
-            String clienteNombre,
             DatosEntregaForm entrega) {
         ResumenCarrito resumen = obtenerResumen(session);
         if (resumen.isVacio()) {
@@ -204,43 +214,45 @@ public class CarritoService {
         DatosEntregaForm normalizado = entrega.normalizado();
         guardarDatosEntrega(session, normalizado);
 
-        String codigo = "LC-" + ThreadLocalRandom.current().nextInt(10000, 99999);
-        String cliente = (clienteNombre == null || clienteNombre.isBlank())
-                ? "Cliente La Cesta"
-                : clienteNombre.strip();
-        PedidoConfirmado pedido = new PedidoConfirmado(
-                codigo,
-                Instant.now(),
+        Pedido pedido = new Pedido(
                 usuarioId,
-                cliente,
                 normalizado,
-                resumen
+                resumen,
+                Instant.now()
         );
 
-        session.setAttribute(ATRIBUTO_PEDIDO, pedido);
+        for (CarritoItem item : resumen.items()) {
+            pedido.agregarDetalle(
+                    item.producto(),
+                    item.cantidad(),
+                    item.producto().getPrecioFinal()
+            );
+        }
+
+        Pedido guardado = pedidos.save(pedido);
         vaciar(session);
-        return pedido;
+        return guardado;
     }
 
-    public PedidoConfirmado obtenerUltimoPedido(HttpSession session) {
-        Object guardado = session.getAttribute(ATRIBUTO_PEDIDO);
-        return guardado instanceof PedidoConfirmado pedido ? pedido : null;
+    public Pedido consultarPedido(Long id) {
+        return pedidos.findWithDetallesById(id).orElse(null);
     }
 
-    public void restaurarPedidoAlCarrito(HttpSession session) {
-        PedidoConfirmado pedido = obtenerUltimoPedido(session);
-        if (pedido == null || pedido.resumen().isVacio()) {
+    @Transactional
+    public void restaurarPedidoAlCarrito(HttpSession session, Long pedidoId) {
+        Pedido pedido = pedidos.findWithDetallesById(pedidoId).orElse(null);
+        if (pedido == null || pedido.getDetalles().isEmpty()) {
             return;
         }
         Map<Long, Integer> mapa = obtenerMapa(session, true);
-        for (CarritoItem item : pedido.resumen().items()) {
-            Producto prod = productos.findById(item.producto().getId()).orElse(null);
+        for (PedidoDetalle detalle : pedido.getDetalles()) {
+            Producto prod = productos.findById(detalle.getProducto().getId()).orElse(null);
             if (prod != null && prod.getStock() > 0) {
-                int acumulada = mapa.getOrDefault(prod.getId(), 0) + item.cantidad();
+                int acumulada = mapa.getOrDefault(prod.getId(), 0) + detalle.getCantidad();
                 mapa.put(prod.getId(), Math.min(acumulada, prod.getStock()));
             }
         }
-        session.removeAttribute(ATRIBUTO_PEDIDO);
+        pedidos.delete(pedido);
     }
 
     private Producto consultarProductoDisponible(Long id) {

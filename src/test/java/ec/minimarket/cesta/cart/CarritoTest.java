@@ -1,10 +1,9 @@
 package ec.minimarket.cesta.cart;
 
-import ec.minimarket.cesta.catalog.Producto;
 import ec.minimarket.cesta.catalog.ProductoRepository;
-import ec.minimarket.cesta.category.Categoria;
 import ec.minimarket.cesta.category.CategoriaRepository;
 import java.math.BigDecimal;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -41,6 +40,9 @@ class CarritoTest {
 
     @Autowired
     private CategoriaRepository categorias;
+
+    @Autowired
+    private PedidoRepository pedidos;
 
     @Autowired
     private CarritoService carritoService;
@@ -89,7 +91,7 @@ class CarritoTest {
     }
 
     @Test
-    void validaDatosDeEntregaYConfirmaElResumenDelPedido() throws Exception {
+    void validaDatosDeEntregaYGuardaElPedidoEnBaseDeDatos() throws Exception {
         var cliente = user("cliente").roles("CUSTOMER");
         MockHttpSession session = new MockHttpSession();
 
@@ -108,7 +110,7 @@ class CarritoTest {
                 .andExpect(model().attributeHasFieldErrors(
                         "entrega", "direccion", "telefono"));
 
-        mvc.perform(post("/carrito/confirmar")
+        String redirectUrl = mvc.perform(post("/carrito/confirmar")
                         .session(session)
                         .with(cliente)
                         .with(csrf())
@@ -116,9 +118,22 @@ class CarritoTest {
                         .param("telefono", "0991234567")
                         .param("referencia", "Edificio esquinero"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/carrito/confirmado"));
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
 
-        mvc.perform(get("/carrito/confirmado").session(session).with(cliente))
+        assertThat(redirectUrl).startsWith("/carrito/confirmado/");
+
+        List<Pedido> guardados = pedidos.findAll();
+        assertThat(guardados).hasSize(1);
+        Pedido guardado = guardados.get(0);
+        assertThat(guardado.getDireccionEntrega()).isEqualTo("Av. 12 de Octubre y Patria");
+        assertThat(guardado.getTelefonoContacto()).isEqualTo("0991234567");
+        assertThat(guardado.getTotal()).isEqualByComparingTo(new BigDecimal("4.00"));
+        assertThat(guardado.getDetalles()).hasSize(1);
+        assertThat(guardado.getDetalles().get(0).getCantidad()).isEqualTo(2);
+
+        mvc.perform(get(redirectUrl).session(session).with(cliente))
                 .andExpect(status().isOk())
                 .andExpect(view().name("cart/confirmed"))
                 .andExpect(content().string(allOf(
@@ -127,7 +142,7 @@ class CarritoTest {
                         containsString("0991234567"),
                         containsString("$4.00"))));
 
-        DatosEntregaForm autocompletado = carritoService.obtenerDatosEntrega(session);
+        DatosEntregaForm autocompletado = carritoService.obtenerDatosEntrega(session, null);
         assertThat(autocompletado.direccion()).isEqualTo("Av. 12 de Octubre y Patria");
         assertThat(autocompletado.telefono()).isEqualTo("0991234567");
     }

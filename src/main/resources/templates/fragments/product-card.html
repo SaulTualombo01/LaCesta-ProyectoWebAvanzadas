@@ -84,7 +84,7 @@
             method="post">
         <input type="hidden" name="productoId" th:value="${producto.id}">
         <input type="hidden" name="cantidad" value="1">
-        <input type="hidden" name="origen" th:value="${oferta ? '/ofertas' : '/productos'}">
+        <input type="hidden" name="origen" th:value="${inicio == true ? '/' : (oferta ? '/ofertas' : '/productos')}">
         <button type="submit" class="button button-small product-card-add">
           Agregar al carrito
         </button>
