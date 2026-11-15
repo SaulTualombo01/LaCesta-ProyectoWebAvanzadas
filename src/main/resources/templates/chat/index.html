@@ -9,7 +9,10 @@
         <h1>Sala general</h1>
         <p class="intro">Comparte tu opinión sobre un producto o pregunta por su disponibilidad.</p>
       </div>
-      <p class="presence"><strong id="chat-count">0</strong> en línea</p>
+      <div class="chat-presence-group">
+        <span id="chat-staff-status" class="staff-pill staff-offline" role="status">Personal desconectado</span>
+        <p class="presence"><strong id="chat-count">0</strong> en línea</p>
+      </div>
     </div>
     <section class="chat-shell" aria-label="Conversación de la sala general">
       <div class="chat-top">
@@ -19,6 +22,10 @@
             <label for="chat-search" class="sr-only">Buscar en el chat</label>
             <input id="chat-search" class="chat-search" type="search" placeholder="Filtrar mensajes (ej. aguacate, stock)…" autocomplete="off">
           </div>
+        </div>
+        <div id="chat-users-bar" class="chat-users-bar" hidden>
+          <span class="chat-users-label">En la sala:</span>
+          <ul id="chat-users-list" class="chat-users-list" aria-label="Usuarios conectados"></ul>
         </div>
         <p id="chat-notice" class="chat-notice" role="status"></p>
       </div>
@@ -38,6 +45,7 @@
       <form id="chat-form"
             class="chat-form"
             th:attr="data-ws=@{/ws/chat},data-current-user=${currentUser},data-is-admin=${isAdmin}">
+        <p id="chat-typing" class="chat-typing" role="status" aria-live="polite" hidden></p>
         <div class="chat-quick-actions" aria-label="Consultas rápidas">
           <span class="chat-quick-label">Consultas rápidas:</span>
           <button type="button" class="chat-chip" data-template="¿Tienen disponibilidad de ">¿Hay stock?</button>
