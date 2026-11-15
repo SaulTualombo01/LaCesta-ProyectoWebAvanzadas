@@ -7,6 +7,7 @@ create table pedidos (
     subtotal numeric(10, 2) not null check (subtotal >= 0),
     descuento_total numeric(10, 2) not null default 0 check (descuento_total >= 0),
     total numeric(10, 2) not null check (total >= 0),
+    estado varchar(20) not null default 'EN_ESPERA' check (estado in ('EN_ESPERA', 'ENTREGADO')),
     creado_en timestamp with time zone not null
 );
 

@@ -238,6 +238,18 @@ public class CarritoService {
         return pedidos.findWithDetallesById(id).orElse(null);
     }
 
+    public List<Pedido> listarTodosLosPedidos() {
+        return pedidos.findAllByOrderByCreadoEnDescIdDesc();
+    }
+
+    @Transactional
+    public Pedido cambiarEstadoEntrega(Long pedidoId) {
+        Pedido pedido = pedidos.findById(pedidoId)
+                .orElseThrow(() -> new IllegalArgumentException("El pedido seleccionado no existe."));
+        pedido.alternarEstadoEntrega();
+        return pedidos.save(pedido);
+    }
+
     @Transactional
     public void restaurarPedidoAlCarrito(HttpSession session, Long pedidoId) {
         Pedido pedido = pedidos.findWithDetallesById(pedidoId).orElse(null);

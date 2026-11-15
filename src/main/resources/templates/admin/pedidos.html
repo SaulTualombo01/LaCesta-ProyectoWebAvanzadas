@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pedidos confirmados · La Cesta</title>
+  <link rel="icon" type="image/png" th:href="@{/img/cesta-icon.png}">
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+  <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+
+<body class="admin-view">
+
+<header th:replace="~{fragments/layout :: header('admin-pedidos')}"></header>
+
+<main id="contenido" class="container admin-page">
+
+  <section class="admin-heading" aria-labelledby="orders-title">
+    <div>
+      <p class="admin-kicker">Panel de administración</p>
+      <h1 id="orders-title">Pedidos confirmados</h1>
+      <p>Consulta la lista de pedidos recibidos, sus productos y los datos de entrega.</p>
+    </div>
+    <div class="admin-actions">
+      <a class="button button-light" th:href="@{/admin}">
+        Volver al panel
+      </a>
+    </div>
+  </section>
+
+  <div th:replace="~{fragments/layout :: flash}"></div>
+
+  <dl class="admin-metrics" aria-label="Resumen de pedidos">
+    <div>
+      <dt>Pedidos recibidos</dt>
+      <dd th:text="${#lists.size(pedidos)}">0</dd>
+    </div>
+    <div>
+      <dt>Unidades solicitadas</dt>
+      <dd th:text="${totalArticulos}">0</dd>
+    </div>
+    <div>
+      <dt>Total acumulado</dt>
+      <dd th:text="${'$' + montoTotal}">$0.00</dd>
+    </div>
+  </dl>
+
+  <section class="inventory category-inventory" aria-labelledby="orders-list-title">
+
+    <div class="admin-section-title">
+      <h2 id="orders-list-title">Historial de pedidos</h2>
+      <p>Ordenados del más reciente al más antiguo.</p>
+    </div>
+
+    <p class="admin-empty" th:if="${#lists.isEmpty(pedidos)}">
+      Todavía no se han registrado pedidos confirmados.
+    </p>
+
+    <table class="inventory-table admin-orders-table"
+           th:unless="${#lists.isEmpty(pedidos)}"
+           aria-labelledby="orders-list-title">
+
+      <thead>
+      <tr>
+        <th scope="col">Pedido</th>
+        <th scope="col">Productos solicitados</th>
+        <th scope="col">Datos de entrega</th>
+        <th scope="col">Total</th>
+        <th scope="col">Estado</th>
+      </tr>
+      </thead>
+
+      <tbody>
+      <tr th:each="pedido : ${pedidos}">
+
+        <th scope="row">
+          <span th:text="${'Pedido #' + pedido.id}">Pedido #1</span>
+          <small th:text="${pedido.fechaFormateada}">
+            15/11/2026 16:30
+          </small>
+        </th>
+
+        <td>
+          <ul class="admin-order-items">
+            <li th:each="det : ${pedido.detalles}">
+              <strong th:text="${det.cantidad + ' × '}">1 × </strong>
+              <span th:text="${det.producto.nombre}">Producto</span>
+              <small th:text="${'($' + det.precioUnitario + ' c/u)'}">($0.00 c/u)</small>
+            </li>
+          </ul>
+        </td>
+
+        <td>
+          <strong th:text="${pedido.direccionEntrega}">Dirección</strong>
+          <small th:text="${'Tel: ' + pedido.telefonoContacto}">Tel: 0990000000</small>
+          <small th:if="${!#strings.isEmpty(pedido.referenciaEntrega)}"
+                 th:text="${'Ref: ' + pedido.referenciaEntrega}">
+            Ref: Referencia
+          </small>
+        </td>
+
+        <td>
+          <strong class="inventory-stock" th:text="${'$' + pedido.total}">$0.00</strong>
+          <small th:if="${pedido.tieneDescuentos}"
+                 th:text="${'Subtotal $' + pedido.subtotal + ' · Desc. -$' + pedido.descuentoTotal}">
+          </small>
+        </td>
+
+        <td>
+          <span class="category-status"
+                th:classappend="${pedido.entregado ? 'active' : 'pending-delivery'}"
+                th:text="${pedido.etiquetaEstado}">
+            En espera
+          </span>
+        </td>
+
+      </tr>
+      </tbody>
+
+    </table>
+
+  </section>
+
+</main>
+
+</body>
+</html>

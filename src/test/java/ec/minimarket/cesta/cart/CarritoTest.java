@@ -145,6 +145,35 @@ class CarritoTest {
         DatosEntregaForm autocompletado = carritoService.obtenerDatosEntrega(session, null);
         assertThat(autocompletado.direccion()).isEqualTo("Av. 12 de Octubre y Patria");
         assertThat(autocompletado.telefono()).isEqualTo("0991234567");
+
+        mvc.perform(get("/admin/pedidos").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/pedidos"))
+                .andExpect(content().string(allOf(
+                        containsString("Pedidos confirmados"),
+                        containsString("Pan Artesanal"),
+                        containsString("Av. 12 de Octubre y Patria"),
+                        containsString("En espera"),
+                        containsString("$4.00"))));
+
+        mvc.perform(get("/entregas").with(user("delivery@admin.com").roles("DELIVERY")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("cart/entregas"))
+                .andExpect(content().string(allOf(
+                        containsString("Pedidos por entregar"),
+                        containsString("Pan Artesanal"),
+                        containsString("En espera"),
+                        containsString("Marcar entregado"))));
+
+        mvc.perform(post("/entregas/" + guardado.getId() + "/estado")
+                        .with(user("delivery@admin.com").roles("DELIVERY"))
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/entregas"));
+
+        Pedido actualizado = pedidos.findById(guardado.getId()).orElseThrow();
+        assertThat(actualizado.getEstado()).isEqualTo(Pedido.ESTADO_ENTREGADO);
+        assertThat(actualizado.isEntregado()).isTrue();
     }
 
     private Long crearProductoConAdmin(

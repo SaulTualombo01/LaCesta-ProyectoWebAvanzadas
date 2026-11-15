@@ -1476,6 +1476,30 @@ noscript .notice { margin-top: 0.75rem; }
   border-top: 1px solid var(--line);
 }
 
+.admin-order-items {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-order-items li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.35rem;
+}
+
+.admin-order-items small {
+  display: inline !important;
+}
+
+.category-status.pending-delivery {
+  background: #f5e2b9;
+  color: #6b4908;
+}
+
 @media (max-width: 860px) {
   .cart-layout {
     grid-template-columns: 1fr;

@@ -1,5 +1,6 @@
 package ec.minimarket.cesta.cart;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -9,6 +10,9 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
 
     @EntityGraph(attributePaths = {"detalles", "detalles.producto", "detalles.producto.categoria"})
     Optional<Pedido> findWithDetallesById(Long id);
+
+    @EntityGraph(attributePaths = {"detalles", "detalles.producto", "detalles.producto.categoria"})
+    List<Pedido> findAllByOrderByCreadoEnDescIdDesc();
 
     Optional<Pedido> findFirstByUsuarioIdOrderByCreadoEnDesc(UUID usuarioId);
 }

@@ -3,6 +3,8 @@ package ec.minimarket.cesta.cart;
 import ec.minimarket.cesta.account.CestaPrincipal;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -12,12 +14,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
-@RequestMapping("/carrito")
 public class CarritoController {
 
     private static final String EXITO = "exito";
@@ -30,7 +30,7 @@ public class CarritoController {
         this.carrito = carrito;
     }
 
-    @GetMapping
+    @GetMapping("/carrito")
     public String verCarrito(
             HttpSession session,
             Authentication authentication,
@@ -55,7 +55,7 @@ public class CarritoController {
         return "cart/index";
     }
 
-    @PostMapping("/agregar")
+    @PostMapping("/carrito/agregar")
     public String agregar(
             @RequestParam Long productoId,
             @RequestParam(defaultValue = "1") int cantidad,
@@ -73,7 +73,7 @@ public class CarritoController {
         return redirigirSegunOrigen(origen);
     }
 
-    @PostMapping("/items/{productoId}/cantidad")
+    @PostMapping("/carrito/items/{productoId}/cantidad")
     public String actualizarCantidad(
             @PathVariable Long productoId,
             @RequestParam int cantidad,
@@ -92,7 +92,7 @@ public class CarritoController {
         return REDIRECT_CARRITO;
     }
 
-    @PostMapping("/items/{productoId}/eliminar")
+    @PostMapping("/carrito/items/{productoId}/eliminar")
     public String eliminar(
             @PathVariable Long productoId,
             HttpSession session,
@@ -103,7 +103,7 @@ public class CarritoController {
         return REDIRECT_CARRITO;
     }
 
-    @PostMapping("/vaciar")
+    @PostMapping("/carrito/vaciar")
     public String vaciar(
             HttpSession session,
             RedirectAttributes aviso) {
@@ -113,7 +113,7 @@ public class CarritoController {
         return REDIRECT_CARRITO;
     }
 
-    @PostMapping("/sincronizar")
+    @PostMapping("/carrito/sincronizar")
     public String sincronizar(
             @RequestParam(defaultValue = "[]") String itemsJson,
             HttpSession session) {
@@ -122,7 +122,7 @@ public class CarritoController {
         return REDIRECT_CARRITO;
     }
 
-    @PostMapping("/confirmar")
+    @PostMapping("/carrito/confirmar")
     public String confirmar(
             @Valid @ModelAttribute("entrega") DatosEntregaForm entrega,
             BindingResult errores,
@@ -165,7 +165,7 @@ public class CarritoController {
         }
     }
 
-    @GetMapping("/confirmado/{id}")
+    @GetMapping("/carrito/confirmado/{id}")
     public String verConfirmado(
             @PathVariable Long id,
             HttpSession session,
@@ -188,7 +188,7 @@ public class CarritoController {
         return "cart/confirmed";
     }
 
-    @PostMapping("/pedidos/{id}/restaurar")
+    @PostMapping("/carrito/pedidos/{id}/restaurar")
     public String restaurarPedido(
             @PathVariable Long id,
             HttpSession session,
@@ -200,6 +200,51 @@ public class CarritoController {
                 "Los productos volvieron a tu carrito para que puedas editarlos."
         );
         return REDIRECT_CARRITO;
+    }
+
+    @GetMapping("/admin/pedidos")
+    public String listarPedidosAdmin(Model model) {
+        List<Pedido> lista = carrito.listarTodosLosPedidos();
+        int totalArticulos = 0;
+        BigDecimal montoTotal = BigDecimal.ZERO.setScale(2);
+
+        for (Pedido p : lista) {
+            totalArticulos += p.getTotalUnidades();
+            montoTotal = montoTotal.add(p.getTotal());
+        }
+
+        model.addAttribute("pedidos", lista);
+        model.addAttribute("totalArticulos", totalArticulos);
+        model.addAttribute("montoTotal", montoTotal);
+        return "admin/pedidos";
+    }
+
+    @GetMapping("/entregas")
+    public String listarEntregas(Model model) {
+        List<Pedido> lista = carrito.listarTodosLosPedidos();
+        long enEspera = lista.stream().filter(p -> !p.isEntregado()).count();
+        long entregados = lista.size() - enEspera;
+
+        model.addAttribute("pedidos", lista);
+        model.addAttribute("enEspera", enEspera);
+        model.addAttribute("entregados", entregados);
+        return "cart/entregas";
+    }
+
+    @PostMapping("/entregas/{id}/estado")
+    public String cambiarEstadoEntrega(
+            @PathVariable Long id,
+            RedirectAttributes aviso) {
+        try {
+            Pedido actualizado = carrito.cambiarEstadoEntrega(id);
+            String texto = actualizado.isEntregado()
+                    ? "Pedido #" + id + " marcado como entregado."
+                    : "Pedido #" + id + " devuelto a en espera.";
+            aviso.addFlashAttribute(EXITO, texto);
+        } catch (IllegalArgumentException e) {
+            aviso.addFlashAttribute(ERROR, e.getMessage());
+        }
+        return "redirect:/entregas";
     }
 
     private UUID usuarioId(Authentication authentication) {

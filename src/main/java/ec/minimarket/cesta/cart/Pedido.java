@@ -11,6 +11,8 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -18,6 +20,13 @@ import java.util.UUID;
 @Entity
 @Table(name = "pedidos")
 public class Pedido {
+
+    public static final String ESTADO_EN_ESPERA = "EN_ESPERA";
+    public static final String ESTADO_ENTREGADO = "ENTREGADO";
+
+    private static final DateTimeFormatter FORMATO_FECHA =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+                    .withZone(ZoneId.of("America/Guayaquil"));
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -44,6 +53,9 @@ public class Pedido {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal total;
 
+    @Column(nullable = false, length = 20)
+    private String estado = ESTADO_EN_ESPERA;
+
     @Column(name = "creado_en", nullable = false)
     private Instant creadoEn;
 
@@ -65,6 +77,7 @@ public class Pedido {
         this.subtotal = resumen.subtotalRegular();
         this.descuentoTotal = resumen.descuentoPromociones();
         this.total = resumen.totalPagar();
+        this.estado = ESTADO_EN_ESPERA;
         this.creadoEn = creadoEn;
     }
 
@@ -104,8 +117,28 @@ public class Pedido {
         return total;
     }
 
+    public String getEstado() {
+        return estado;
+    }
+
+    public boolean isEntregado() {
+        return ESTADO_ENTREGADO.equals(estado);
+    }
+
+    public String getEtiquetaEstado() {
+        return isEntregado() ? "Entregado" : "En espera";
+    }
+
+    public void alternarEstadoEntrega() {
+        this.estado = isEntregado() ? ESTADO_EN_ESPERA : ESTADO_ENTREGADO;
+    }
+
     public Instant getCreadoEn() {
         return creadoEn;
+    }
+
+    public String getFechaFormateada() {
+        return creadoEn == null ? "" : FORMATO_FECHA.format(creadoEn);
     }
 
     public List<PedidoDetalle> getDetalles() {
