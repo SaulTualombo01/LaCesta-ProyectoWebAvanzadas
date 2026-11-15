@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title th:text="${categoria.id == null ? 'Añadir categoría · La Cesta' : 'Editar categoría · La Cesta'}">
+        Gestión de categorías · La Cesta
+    </title>
+
+    <link rel="icon" type="image/png"
+          th:href="@{/img/cesta-icon.png}">
+
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+
+<body class="admin-view">
+
+<header th:replace="~{fragments/layout :: header('admin')}"></header>
+
+<main id="contenido" class="container page">
+
+    <a class="back-link" th:href="@{/admin/categorias}">
+        Volver a categorías
+    </a>
+
+    <div class="page-heading">
+
+        <h1 th:text="${categoria.id == null ? 'Añadir categoría' : 'Editar categoría'}">
+            Gestión de categorías
+        </h1>
+
+        <p>Completa la información de la categoría.</p>
+
+    </div>
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <form class="form-stack product-form"
+          method="post"
+          th:object="${categoria}"
+          th:action="@{${categoria.id == null ? '/admin/categorias/crear' : '/admin/categorias/' + categoria.id + '/actualizar'}}">
+
+        <div class="field">
+
+            <label for="codigo">Código de la categoría</label>
+
+            <input id="codigo"
+                   type="text"
+                   th:field="*{codigo}"
+                   maxlength="20"
+                   pattern="[A-Z0-9_]{1,20}"
+                   placeholder="Ej. CUIDADO_PERSONAL"
+                   th:readonly="${categoria.id != null}"
+                   required>
+
+            <p class="hint">
+                Utiliza letras mayúsculas, números y guiones bajos.
+                El código no se podrá modificar posteriormente.
+            </p>
+
+        </div>
+
+        <div class="field">
+
+            <label for="nombre">Nombre de la categoría</label>
+
+            <input id="nombre"
+                   type="text"
+                   th:field="*{nombre}"
+                   maxlength="100"
+                   placeholder="Ej. Cuidado personal"
+                   required>
+
+        </div>
+
+        <div class="field">
+
+            <label for="descripcion">
+                Descripción
+                <span class="optional">Opcional</span>
+            </label>
+
+            <textarea id="descripcion"
+                      th:field="*{descripcion}"
+                      rows="4"
+                      maxlength="255"
+                      placeholder="Describe los productos de esta categoría">
+            </textarea>
+
+        </div>
+
+        <button class="button"
+                type="submit"
+                th:text="${categoria.id == null ? 'Crear categoría' : 'Guardar cambios'}">
+            Guardar categoría
+        </button>
+
+        <a class="button button-outline"
+           th:href="@{/admin/categorias}">
+            Cancelar
+        </a>
+
+    </form>
+
+</main>
+
+</body>
+</html>

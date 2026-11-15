@@ -104,3 +104,106 @@
 .admin-offers .inventory-table th:nth-child(3),
 .admin-offers .inventory-table td:nth-child(3) { display: table-cell; }
 .admin-offers .inventory-edit { white-space: normal; }
+
+
+/* ========================================
+   MÓDULO DE GESTIÓN DE CATEGORÍAS
+   ======================================== */
+
+.admin-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.admin-actions .button {
+  white-space: nowrap;
+  transition: background-color 0.2s ease,
+  transform 0.2s ease;
+}
+
+.admin-actions .button:hover {
+  transform: translateY(-2px);
+}
+
+/* Tabla de categorías */
+
+.category-inventory {
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+
+.category-inventory .inventory-table {
+  width: 100%;
+}
+
+.category-inventory .inventory-table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.category-inventory .inventory-table td:last-child {
+  min-width: 160px;
+}
+
+.category-inventory .inventory-table form {
+  display: inline-flex;
+  margin: 0.25rem;
+}
+
+/* Estados de las categorías */
+
+.category-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 2rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.category-status.active {
+  background: #e3efdf;
+  color: #285b34;
+}
+
+.category-status.inactive {
+  background: #fbe5e5;
+  color: #a83232;
+}
+
+/* Diseño adaptable */
+
+@media (max-width: 775px) {
+  .admin-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .admin-actions .button {
+    flex: 1;
+    text-align: center;
+  }
+
+  .category-inventory .inventory-table {
+    min-width: 650px;
+  }
+}
+
+@media (max-width: 460px) {
+  .admin-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-actions .button {
+    width: 100%;
+  }
+
+  .category-inventory .inventory-table th:nth-child(3),
+  .category-inventory .inventory-table td:nth-child(3) {
+    display: table-cell;
+  }
+}
