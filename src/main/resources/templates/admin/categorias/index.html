@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gestión de categorías · La Cesta</title>
+
+    <link rel="icon" type="image/png"
+          th:href="@{/img/cesta-icon.png}">
+
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/admin.css}">
+</head>
+
+<body class="admin-view">
+
+<header th:replace="~{fragments/layout :: header('admin')}"></header>
+
+<main id="contenido" class="container admin-page">
+
+    <section class="admin-heading" aria-labelledby="category-title">
+        <div>
+            <p class="admin-kicker">Panel de administración</p>
+            <h1 id="category-title">Gestión de categorías</h1>
+            <p>Organiza y administra las categorías de tus productos.</p>
+        </div>
+
+        <div class="admin-actions">
+            <a class="button button-light"
+               th:href="@{/admin/categorias/nueva}">
+                + Añadir categoría
+            </a>
+        </div>
+    </section>
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <dl class="admin-metrics" aria-label="Estado de las categorías">
+
+        <div>
+            <dt>Total de categorías</dt>
+            <dd th:text="${#lists.size(categorias)}">0</dd>
+        </div>
+
+        <div>
+            <dt>Categorías activas</dt>
+            <dd th:text="${totalActivas}">0</dd>
+        </div>
+
+        <div>
+            <dt>Categorías inactivas</dt>
+            <dd th:text="${totalInactivas}">0</dd>
+        </div>
+
+    </dl>
+
+    <section class="inventory category-inventory"
+             aria-labelledby="categories-list">
+
+        <div class="admin-section-title">
+            <h2 id="categories-list">Categorías registradas</h2>
+            <p>Consulta y administra las categorías del catálogo.</p>
+        </div>
+
+        <p class="admin-empty"
+           th:if="${#lists.isEmpty(categorias)}">
+            No existen categorías registradas.
+        </p>
+
+        <table class="inventory-table"
+               th:unless="${#lists.isEmpty(categorias)}"
+               aria-labelledby="categories-list">
+
+            <thead>
+            <tr>
+                <th scope="col">Categoría</th>
+                <th scope="col">Código</th>
+                <th scope="col">Descripción</th>
+                <th scope="col">Estado</th>
+                <th scope="col">Acciones</th>
+            </tr>
+            </thead>
+
+            <tbody>
+
+            <tr th:each="categoria : ${categorias}">
+
+                <th scope="row"
+                    th:text="${categoria.nombre}">
+                </th>
+
+                <td th:text="${categoria.codigo}"></td>
+
+                <td th:text="${categoria.descripcion}"></td>
+
+                <td>
+                    <span class="category-status"
+                          th:classappend="${categoria.activo ? 'active' : 'inactive'}"
+                          th:text="${categoria.activo ? 'Activa' : 'Inactiva'}">
+                    </span>
+                </td>
+
+                <td>
+                    <a class="button button-outline button-small"
+                       th:href="@{/admin/categorias/{id}/editar(id=${categoria.id})}">
+                        Editar
+                    </a>
+
+                    <form method="post"
+                          th:action="@{/admin/categorias/{id}/estado(id=${categoria.id})}">
+
+                        <button type="submit"
+                                class="button button-outline button-small"
+                                th:text="${categoria.activo ? 'Desactivar' : 'Activar'}">
+                        </button>
+
+                    </form>
+                </td>
+
+            </tr>
+
+            </tbody>
+        </table>
+
+    </section>
+
+    <nav class="pagination">
+        <a class="button button-outline" th:href="@{/admin}">
+            Volver al panel de administración
+        </a>
+    </nav>
+
+</main>
+</body>
+</html>

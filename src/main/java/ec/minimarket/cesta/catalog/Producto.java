@@ -3,13 +3,16 @@ package ec.minimarket.cesta.catalog;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+import ec.minimarket.cesta.category.Categoria;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
@@ -24,8 +27,12 @@ public class Producto {
     @Column(nullable = false, length = 100)
     private String nombre;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(
+            name = "categoria",
+            referencedColumnName = "codigo",
+            nullable = false
+    )
     private Categoria categoria;
 
     @Column(nullable = false, length = 500)
@@ -50,13 +57,13 @@ public class Producto {
     protected Producto() {
     }
 
-    Producto(ProductoForm form) {
-        actualizar(form);
+    Producto(ProductoForm form, Categoria categoria) {
+        actualizar(form, categoria);
     }
 
-    void actualizar(ProductoForm form) {
+    void actualizar(ProductoForm form, Categoria categoria) {
         nombre = form.nombre().strip();
-        categoria = form.categoria();
+        this.categoria = categoria;
         descripcion = form.descripcion().strip();
         precio = form.precio();
         stock = form.stock();

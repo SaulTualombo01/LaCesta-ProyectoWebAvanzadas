@@ -8,15 +8,21 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record ProductoForm(
+
         @NotBlank(message = "Escribe el nombre del producto.")
         @Size(max = 100, message = "Usa hasta 100 caracteres.")
         String nombre,
 
-        @NotNull(message = "Selecciona una categoría.")
-        Categoria categoria,
+        @NotBlank(message = "Selecciona una categoría.")
+        @Pattern(
+                regexp = "[A-Z0-9_]{1,20}",
+                message = "Selecciona una categoría válida."
+        )
+        String categoria,
 
         @NotBlank(message = "Escribe una descripción.")
         @Size(max = 500, message = "Usa hasta 500 caracteres.")
@@ -24,7 +30,8 @@ public record ProductoForm(
 
         @NotNull(message = "Escribe el precio regular.")
         @DecimalMin(value = "0.01", message = "El precio mínimo es 0,01.")
-        @Digits(integer = 6, fraction = 2, message = "Usa hasta seis dígitos enteros y dos decimales.")
+        @Digits(integer = 6, fraction = 2,
+                message = "Usa hasta seis dígitos enteros y dos decimales.")
         BigDecimal precio,
 
         @NotNull(message = "Escribe las unidades disponibles.")
@@ -33,13 +40,21 @@ public record ProductoForm(
         Integer stock,
 
         @DecimalMin(value = "0.01", message = "El precio mínimo es 0,01.")
-        @Digits(integer = 6, fraction = 2, message = "Usa hasta seis dígitos enteros y dos decimales.")
+        @Digits(integer = 6, fraction = 2,
+                message = "Usa hasta seis dígitos enteros y dos decimales.")
         BigDecimal precioPromocional,
 
         Long version
 ) {
-    static ProductoForm desde(Producto producto) {
-        return new ProductoForm(producto.getNombre(), producto.getCategoria(), producto.getDescripcion(),
-                producto.getPrecio(), producto.getStock(), producto.getPrecioPromocional(), producto.getVersion());
-    }
+        static ProductoForm desde(Producto producto) {
+                return new ProductoForm(
+                        producto.getNombre(),
+                        producto.getCategoria().getCodigo(),
+                        producto.getDescripcion(),
+                        producto.getPrecio(),
+                        producto.getStock(),
+                        producto.getPrecioPromocional(),
+                        producto.getVersion()
+                );
+        }
 }

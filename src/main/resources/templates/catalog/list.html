@@ -1,68 +1,169 @@
 <!doctype html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head(${inicio ? 'Inicio' : 'Catálogo'})}"></head>
+
+<head th:replace="~{fragments/layout :: head(${inicio ? 'Inicio' : 'Catálogo'})}">
+  <title>Catálogo de productos · La Cesta</title>
+</head>
+
 <body>
-  <header th:replace="${inicio} ? ~{fragments/editorial-store :: header} : ~{fragments/layout :: header('productos')}"></header>
-  <main id="contenido" th:class="${inicio ? 'editorial-home' : 'container page'}">
-    <th:block th:if="${inicio}">
-      <section th:replace="~{fragments/editorial-store :: hero}"></section>
-      <section class="container home-offers" aria-labelledby="home-offers-title">
-        <div>
-          <h2 id="home-offers-title">Ofertas especiales</h2>
-          <p>Descuentos en productos de tu compra diaria.</p>
-        </div>
-        <a class="button offer-cta" th:href="@{/ofertas}">Ver ofertas <span aria-hidden="true">↗</span></a>
-      </section>
-      <th:block th:replace="~{fragments/editorial-store :: discover}"></th:block>
-    </th:block>
-    <section aria-labelledby="titulo-catalogo" th:classappend="${inicio} ? 'container editorial-catalog' : null">
-      <div class="page-heading">
-        <div>
-          <h1 id="titulo-catalogo" th:unless="${inicio}">Catálogo de productos</h1>
-          <h2 id="titulo-catalogo" th:if="${inicio}">Catálogo de productos</h2>
-          <p class="intro" th:unless="${inicio}">Explora las categorías, los precios y las promociones vigentes.</p>
-        </div>
-      </div>
-      <div th:replace="~{fragments/layout :: flash}"></div>
-      <form class="filter-form" th:action="@{/productos}" method="get">
-        <div class="field">
-          <label for="categoria">Categoría</label>
-          <select id="categoria" name="categoria">
-            <option value="">Todas las categorías</option>
-            <option th:each="opcion : ${categorias}" th:value="${opcion.name()}"
-                    th:selected="${opcion == categoria}" th:text="${opcion.etiqueta}"></option>
-          </select>
-        </div>
-        <button class="button button-outline" type="submit">Filtrar</button>
-        <a class="reset-filter" th:if="${categoria != null}" th:href="@{/productos}">Quitar filtro</a>
-      </form>
 
-      <p class="results-count" th:if="${pagina.totalElements > 0}"
-         th:text="${pagina.totalElements == 1 ? '1 producto' : pagina.totalElements + ' productos'}"></p>
-      <div class="empty-state" th:if="${pagina.empty}">
-        <h3 th:text="${categoria == null ? 'El catálogo está vacío' : 'No hay productos en esta categoría'}"></h3>
-        <p th:if="${categoria != null}">Elige otra categoría o <a th:href="@{/productos}">ve todo el catálogo</a>.</p>
+<header th:replace="${inicio} ? ~{fragments/editorial-store :: header} : ~{fragments/layout :: header('productos')}"></header>
+
+<main id="contenido"
+      th:class="${inicio ? 'editorial-home' : 'container page'}">
+
+  <th:block th:if="${inicio}">
+
+    <section th:replace="~{fragments/editorial-store :: hero}"></section>
+
+    <section class="container home-offers"
+             aria-labelledby="home-offers-title">
+
+      <div>
+        <h2 id="home-offers-title">Ofertas especiales</h2>
+        <p>Descuentos en productos de tu compra diaria.</p>
       </div>
 
-      <ul class="product-grid" th:unless="${pagina.empty}">
-        <th:block th:each="producto : ${pagina.content}">
-          <li th:replace="~{fragments/product-card :: card(${producto}, false)}"></li>
-        </th:block>
-      </ul>
+      <a class="button offer-cta"
+         th:href="@{/ofertas}">
+        Ver ofertas <span aria-hidden="true">↗</span>
+      </a>
 
-      <nav class="pagination" aria-label="Páginas del catálogo" th:if="${pagina.totalPages > 1}">
-        <a class="button button-outline button-small" th:if="${pagina.hasPrevious()}"
-           th:href="@{/productos(page=${pagina.number - 1},categoria=${categoria})}">Anterior</a>
-        <span th:text="|Página ${pagina.number + 1} de ${pagina.totalPages}|"></span>
-        <a class="button button-outline button-small" th:if="${pagina.hasNext()}"
-           th:href="@{/productos(page=${pagina.number + 1},categoria=${categoria})}">Siguiente</a>
-      </nav>
     </section>
-    <th:block th:if="${inicio}">
-      <section th:replace="~{fragments/editorial-store :: closing}"></section>
-    </th:block>
-  </main>
-  <script th:if="${inicio}" th:src="@{/js/store-carousel.js}" defer></script>
-  <script th:if="${inicio}" th:src="@{/js/editorial-store.js}" defer></script>
+
+    <th:block th:replace="~{fragments/editorial-store :: discover}"></th:block>
+
+  </th:block>
+
+  <section th:attr="aria-labelledby=${inicio ? 'titulo-catalogo-inicio' : 'titulo-catalogo'}"
+           th:classappend="${inicio ? 'container editorial-catalog' : ''}">
+
+    <div class="page-heading">
+
+      <div>
+
+        <h1 id="titulo-catalogo"
+            th:unless="${inicio}">
+          Catálogo de productos
+        </h1>
+
+        <h2 id="titulo-catalogo-inicio"
+            th:if="${inicio}">
+          Catálogo de productos
+        </h2>
+
+        <p class="intro" th:unless="${inicio}">
+          Explora las categorías, los precios y las promociones vigentes.
+        </p>
+
+      </div>
+
+    </div>
+
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <form class="filter-form"
+          th:action="@{/productos}"
+          method="get">
+
+      <div class="field">
+
+        <label for="categoria">Categoría</label>
+
+        <select id="categoria" name="categoria">
+
+          <option value="">
+            Todas las categorías
+          </option>
+
+          <option th:each="opcion : ${categorias}"
+                  th:value="${opcion.codigo}"
+                  th:selected="${opcion.codigo == categoria}"
+                  th:text="${opcion.nombre}">
+          </option>
+
+        </select>
+
+      </div>
+
+      <button class="button button-outline"
+              type="submit">
+        Filtrar
+      </button>
+
+      <a class="reset-filter"
+         th:unless="${#strings.isEmpty(categoria)}"
+         th:href="@{/productos}">
+        Quitar filtro
+      </a>
+
+    </form>
+
+    <p class="results-count"
+       th:if="${pagina.totalElements > 0}"
+       th:text="${pagina.totalElements == 1 ? '1 producto' : pagina.totalElements + ' productos'}">
+    </p>
+
+    <div class="empty-state"
+         th:if="${pagina.isEmpty()}">
+
+      <h3 th:text="${#strings.isEmpty(categoria) ? 'El catálogo está vacío' : 'No hay productos en esta categoría'}">
+        No hay productos disponibles
+      </h3>
+
+      <p th:unless="${#strings.isEmpty(categoria)}">
+        Elige otra categoría o
+        <a th:href="@{/productos}">ve todo el catálogo</a>.
+      </p>
+
+    </div>
+
+    <ul class="product-grid"
+        th:unless="${pagina.isEmpty()}">
+
+      <th:block th:each="producto : ${pagina.content}">
+
+        <li th:replace="~{fragments/product-card :: card(${producto}, false)}"></li>
+
+      </th:block>
+
+    </ul>
+
+    <nav class="pagination"
+         aria-label="Páginas del catálogo"
+         th:if="${pagina.totalPages > 1}">
+
+      <a class="button button-outline button-small"
+         th:if="${pagina.hasPrevious()}"
+         th:href="@{/productos(page=${pagina.number - 1},categoria=${categoria})}">
+        Anterior
+      </a>
+
+      <span th:text="|Página ${pagina.number + 1} de ${pagina.totalPages}|"></span>
+
+      <a class="button button-outline button-small"
+         th:if="${pagina.hasNext()}"
+         th:href="@{/productos(page=${pagina.number + 1},categoria=${categoria})}">
+        Siguiente
+      </a>
+
+    </nav>
+
+  </section>
+
+  <th:block th:if="${inicio}">
+
+    <section th:replace="~{fragments/editorial-store :: closing}"></section>
+
+  </th:block>
+
+</main>
+
+<script th:if="${inicio}"
+        th:src="@{/js/store-carousel.js}" defer></script>
+
+<script th:if="${inicio}"
+        th:src="@{/js/editorial-store.js}" defer></script>
+
 </body>
 </html>
