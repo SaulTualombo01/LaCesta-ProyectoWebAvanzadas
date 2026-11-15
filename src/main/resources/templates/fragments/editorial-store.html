@@ -49,6 +49,13 @@
 
       <a th:href="@{/chat}">Sala general</a>
 
+      <a th:href="@{/carrito}" class="editorial-cart-link">
+        <span>Carrito</span>
+        <span class="cart-nav-badge"
+              th:if="${carritoCantidad != null and carritoCantidad > 0}"
+              th:text="${carritoCantidad}">0</span>
+      </a>
+
       <form th:action="@{/salir}" method="post">
 
         <button type="submit" class="editorial-logout">

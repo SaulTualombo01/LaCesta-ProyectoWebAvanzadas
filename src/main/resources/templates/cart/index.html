@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head th:replace="~{fragments/layout :: head('Mi carrito')}">
+  <title>Mi carrito · La Cesta</title>
+</head>
+
+<body>
+
+<header th:replace="~{fragments/layout :: header('carrito')}"></header>
+
+<main id="contenido"
+      class="container page"
+      th:attr="data-cart-items=${resumen.jsonSincronizacion},data-cart-empty=${resumen.vacio}">
+
+  <div class="page-heading">
+    <div>
+      <h1>Mi carrito de compras</h1>
+      <p class="intro">
+        Revisa tus productos, ajusta las cantidades y confirma los datos de entrega para tu pedido.
+      </p>
+    </div>
+    <a class="button button-outline" th:href="@{/productos}">
+      Seguir comprando
+    </a>
+  </div>
+
+  <div id="cart-flash-container">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+  </div>
+
+  <div id="cart-restore-banner" class="notice notice-success" hidden>
+    Recuperando los productos guardados en tu navegador…
+  </div>
+
+  <form id="cart-sync-form"
+        th:action="@{/carrito/sincronizar}"
+        method="post"
+        hidden>
+    <input type="hidden" id="cart-sync-input" name="itemsJson" value="[]">
+  </form>
+
+  <div class="empty-state cart-empty-state" th:if="${resumen.vacio}">
+    <h3>Tu carrito está vacío</h3>
+    <p>
+      Todavía no has agregado productos. Explora el
+      <a th:href="@{/productos}">catálogo completo</a> o revisa las
+      <a th:href="@{/ofertas}">ofertas especiales</a>.
+    </p>
+  </div>
+
+  <div class="cart-layout" th:unless="${resumen.vacio}">
+
+    <section class="cart-items-section" aria-labelledby="cart-items-heading">
+
+      <div class="cart-section-header">
+        <h2 id="cart-items-heading"
+            th:text="${resumen.totalUnidades == 1 ? '1 artículo seleccionado' : resumen.totalUnidades + ' artículos seleccionados'}">
+          Artículos seleccionados
+        </h2>
+        <form th:action="@{/carrito/vaciar}" method="post">
+          <button type="submit" class="button button-small button-quiet cart-clear-btn">
+            Vaciar carrito
+          </button>
+        </form>
+      </div>
+
+      <ul class="cart-list">
+
+        <li class="cart-item"
+            th:each="item : ${resumen.items}"
+            th:attr="data-product-id=${item.producto.id}">
+
+          <a class="cart-item-media"
+             th:href="@{/productos/{id}(id=${item.producto.id})}">
+            <img th:if="${item.producto.imagenRevision != null}"
+                 th:src="@{/productos/{id}/imagen(id=${item.producto.id},v=${item.producto.imagenRevision})}"
+                 th:alt="${item.producto.nombre}"
+                 width="140"
+                 height="120"
+                 loading="lazy"
+                 decoding="async">
+            <span class="photo-placeholder"
+                  th:if="${item.producto.imagenRevision == null}">
+              Sin foto
+            </span>
+          </a>
+
+          <div class="cart-item-info">
+            <p class="product-category" th:text="${item.producto.categoria.nombre}">
+              Categoría
+            </p>
+            <h3 class="cart-item-title">
+              <a th:href="@{/productos/{id}(id=${item.producto.id})}"
+                 th:text="${item.producto.nombre}">
+                Nombre del producto
+              </a>
+            </h3>
+
+            <div class="cart-item-prices">
+              <strong class="cart-unit-price"
+                      th:text="${'$' + item.producto.precioFinal + ' c/u'}">
+                $0.00 c/u
+              </strong>
+              <del th:if="${item.tieneOferta}"
+                   th:text="${'$' + item.producto.precio}">
+                $0.00
+              </del>
+              <span class="cart-offer-pill"
+                    th:if="${item.tieneOferta}"
+                    th:text="${'Ahorras $' + item.ahorroLinea}">
+                En oferta
+              </span>
+            </div>
+
+            <p class="stock"
+               th:text="${item.producto.stock + ' disponibles en tienda'}">
+              En stock
+            </p>
+          </div>
+
+          <div class="cart-item-controls">
+
+            <form class="cart-qty-form"
+                  th:action="@{/carrito/items/{id}/cantidad(id=${item.producto.id})}"
+                  method="post"
+                  th:attr="data-product-id=${item.producto.id}">
+              <label class="sr-only"
+                     th:for="${'qty-' + item.producto.id}"
+                     th:text="${'Cantidad de ' + item.producto.nombre}">
+                Cantidad
+              </label>
+              <div class="cart-stepper">
+                <button type="button"
+                        class="cart-step-btn"
+                        data-step="-1"
+                        aria-label="Disminuir cantidad">
+                  −
+                </button>
+                <input th:id="${'qty-' + item.producto.id}"
+                       class="cart-qty-input"
+                       name="cantidad"
+                       type="number"
+                       min="1"
+                       th:max="${item.producto.stock}"
+                       th:value="${item.cantidad}"
+                       required>
+                <button type="button"
+                        class="cart-step-btn"
+                        data-step="1"
+                        aria-label="Aumentar cantidad">
+                  +
+                </button>
+              </div>
+              <button type="submit" class="button button-small button-outline cart-update-btn">
+                Actualizar
+              </button>
+            </form>
+
+            <div class="cart-item-subtotal">
+              <span class="cart-subtotal-label">Subtotal</span>
+              <strong class="price" th:text="${'$' + item.subtotalFinal}">
+                $0.00
+              </strong>
+            </div>
+
+            <form th:action="@{/carrito/items/{id}/eliminar(id=${item.producto.id})}"
+                  method="post">
+              <button type="submit"
+                      class="cart-remove-btn"
+                      th:attr="aria-label=${'Quitar ' + item.producto.nombre + ' del carrito'}">
+                Quitar
+              </button>
+            </form>
+
+          </div>
+
+        </li>
+
+      </ul>
+
+    </section>
+
+    <aside class="cart-summary-card" aria-labelledby="cart-summary-heading">
+
+      <h2 id="cart-summary-heading">Resumen del pedido</h2>
+
+      <div id="cart-summary-totals" class="cart-summary-totals">
+        <dl class="cart-summary-list">
+          <div class="cart-summary-row">
+            <dt th:text="${'Productos (' + resumen.totalUnidades + ')'}">Productos</dt>
+            <dd th:text="${'$' + resumen.subtotalRegular}">$0.00</dd>
+          </div>
+
+          <div class="cart-summary-row cart-summary-discount"
+               th:if="${resumen.tieneDescuentos}">
+            <dt>Descuento por promociones</dt>
+            <dd th:text="${'-$' + resumen.descuentoPromociones}">-$0.00</dd>
+          </div>
+
+          <div class="cart-summary-row">
+            <dt>Entrega a domicilio</dt>
+            <dd class="cart-free-badge">Sin recargo</dd>
+          </div>
+
+          <div class="cart-summary-row cart-summary-total">
+            <dt>Total a pagar</dt>
+            <dd th:text="${'$' + resumen.totalPagar}">$0.00</dd>
+          </div>
+        </dl>
+
+        <p class="cart-savings-banner"
+           th:if="${resumen.tieneDescuentos}"
+           th:text="${'¡Estás ahorrando $' + resumen.descuentoPromociones + ' en esta compra!'}">
+        </p>
+      </div>
+
+      <hr class="cart-divider">
+
+      <form id="cart-checkout-form"
+            class="form-stack cart-delivery-form"
+            th:action="@{/carrito/confirmar}"
+            th:object="${entrega}"
+            method="post"
+            novalidate>
+
+        <div class="cart-delivery-header">
+          <h3>Información de entrega</h3>
+          <span class="cart-autofill-pill"
+                id="cart-autofill-badge"
+                th:hidden="${!entregaAutocompletada}">
+            Autocompletado
+          </span>
+        </div>
+
+        <p class="hint">
+          Tus datos quedan guardados para autocompletarse en tu próxima compra.
+        </p>
+
+        <div class="field">
+          <label for="direccion">Dirección de entrega</label>
+          <input id="direccion"
+                 type="text"
+                 th:field="*{direccion}"
+                 minlength="5"
+                 maxlength="180"
+                 required
+                 placeholder="Calle principal, número y calle secundaria"
+                 th:attr="aria-invalid=${#fields.hasErrors('direccion')}">
+          <p class="field-error"
+             th:if="${#fields.hasErrors('direccion')}"
+             th:errors="*{direccion}">
+          </p>
+        </div>
+
+        <div class="field">
+          <label for="telefono">Teléfono de contacto</label>
+          <input id="telefono"
+                 type="tel"
+                 th:field="*{telefono}"
+                 maxlength="15"
+                 required
+                 placeholder="Ej. 0991234567"
+                 th:attr="aria-invalid=${#fields.hasErrors('telefono')}">
+          <p class="field-error"
+             th:if="${#fields.hasErrors('telefono')}"
+             th:errors="*{telefono}">
+          </p>
+        </div>
+
+        <div class="field">
+          <label for="referencia">
+            Referencia o indicaciones
+            <span class="optional">(opcional)</span>
+          </label>
+          <textarea id="referencia"
+                    th:field="*{referencia}"
+                    rows="2"
+                    maxlength="250"
+                    placeholder="Color de casa, piso o punto de referencia cercano"
+                    th:attr="aria-invalid=${#fields.hasErrors('referencia')}"></textarea>
+          <p class="field-error"
+             th:if="${#fields.hasErrors('referencia')}"
+             th:errors="*{referencia}">
+          </p>
+        </div>
+
+        <button type="submit" class="button cart-checkout-btn">
+          Confirmar pedido e ir al pago
+        </button>
+
+      </form>
+
+    </aside>
+
+  </div>
+
+</main>
+
+<script th:src="@{/js/cart.js}" defer></script>
+
+</body>
+</html>

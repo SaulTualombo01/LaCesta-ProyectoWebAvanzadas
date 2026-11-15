@@ -26,6 +26,14 @@
         <a sec:authorize="!hasRole('ADMIN')" th:href="@{/ofertas}"
            th:aria-current="${actual == 'ofertas'} ? 'page' : null">Ofertas</a>
         <a th:href="@{/chat}" th:aria-current="${actual == 'chat'} ? 'page' : null">Sala general</a>
+        <a sec:authorize="!hasRole('ADMIN')" th:href="@{/carrito}"
+           th:aria-current="${actual == 'carrito'} ? 'page' : null"
+           class="nav-cart-link">
+          <span>Carrito</span>
+          <span class="cart-nav-badge"
+                th:if="${carritoCantidad != null and carritoCantidad > 0}"
+                th:text="${carritoCantidad}">0</span>
+        </a>
       </nav>
       <form th:action="@{/salir}" method="post">
         <button type="submit" class="button button-small button-quiet">Cerrar sesión</button>
