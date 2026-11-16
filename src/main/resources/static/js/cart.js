@@ -1,8 +1,6 @@
 (function () {
   "use strict";
 
-  var CART_STORAGE_KEY = "la_cesta_carrito_v1";
-  var DELIVERY_STORAGE_KEY = "la_cesta_datos_envio_v1";
   var SCROLL_STORAGE_KEY = "la_cesta_carrito_scroll_y";
 
   // Restaurar posición de scroll si hubo recarga tradicional
@@ -78,295 +76,182 @@
     });
   });
 
-  var main = document.getElementById("contenido");
-  if (!main) {
-    return;
+  const cart = document.querySelector(".cart-page");
+  const checkout = cart?.querySelector("#cart-checkout-form");
+  if (!checkout) return;
+
+  const rows = new Map(Array.from(cart.querySelectorAll(".cart-item"), row => {
+    const input = row.querySelector(".cart-qty-input");
+    return [row.dataset.productId, {
+      row, input, cantidad: input.valueAsNumber, precio: row.dataset.regular, precioFinal: row.dataset.final
+    }];
+  }));
+  const pending = new Map();
+  const status = cart.querySelector(".cart-sync-status");
+  const retry = cart.querySelector(".cart-sync-retry");
+  const checkoutButton = checkout.querySelector(".cart-checkout-btn");
+  let saving = false;
+  let timer;
+  let reloadNeeded = false;
+
+  const money = cents => "$" + (cents / 100).toFixed(2);
+  const cents = amount => Math.round(Number(amount) * 100);
+
+  function renderTotals() {
+    let units = 0;
+    let regular = 0;
+    let total = 0;
+    for (const [id, line] of rows) {
+      const quantity = pending.get(id)?.quantity ?? line.savingQuantity ?? line.cantidad;
+      const subtotal = cents(line.precioFinal) * quantity;
+      const base = cents(line.precio) * quantity;
+      const discount = base - subtotal;
+      units += quantity;
+      regular += base;
+      total += subtotal;
+      line.row.querySelector(".cart-item-subtotal .price").textContent = money(subtotal);
+      line.row.querySelector(".cart-unit-price").textContent = money(cents(line.precioFinal)) + " c/u";
+      const oldPrice = line.row.querySelector(".cart-item-prices del");
+      oldPrice.hidden = discount === 0;
+      oldPrice.textContent = money(cents(line.precio));
+      const pill = line.row.querySelector(".cart-offer-pill");
+      pill.hidden = discount === 0;
+      pill.textContent = "Ahorras " + money(discount);
+    }
+
+    const discount = regular - total;
+    cart.querySelector("#cart-items-heading").textContent =
+      units === 1 ? "1 artículo seleccionado" : units + " artículos seleccionados";
+    cart.querySelector("[data-cart-units]").textContent = "Productos (" + units + ")";
+    cart.querySelector("[data-cart-regular]").textContent = money(regular);
+    cart.querySelector("[data-cart-total]").textContent = money(total);
+    const discountAmount = cart.querySelector("[data-cart-discount]");
+    discountAmount.parentElement.hidden = discount === 0;
+    discountAmount.textContent = "-" + money(discount);
+    const savings = cart.querySelector(".cart-savings-banner");
+    savings.hidden = discount === 0;
+    savings.textContent = "Estás ahorrando " + money(discount);
+    const badge = document.querySelector(".cart-nav-badge");
+    if (badge) badge.textContent = units;
   }
 
-  // Si el pedido fue confirmado, limpiamos los ítems pendientes en localStorage
-  if (main.getAttribute("data-cart-confirmed") === "true") {
-    try {
-      localStorage.removeItem(CART_STORAGE_KEY);
-    } catch (e) {
-      // Ignorar si el navegador restringe localStorage
-    }
-    return;
+  function setStatus(message, failed = false) {
+    status.textContent = message;
+    status.classList.toggle("is-error", failed);
+    retry.hidden = !failed;
+    retry.textContent = reloadNeeded ? "Recargar carrito" : "Reintentar";
+    checkoutButton.disabled = saving || pending.size > 0 || failed;
   }
 
-  function syncLocalStorageFromMain(mainEl) {
-    if (!mainEl) {
-      return;
-    }
-    var serverItemsJson = mainEl.getAttribute("data-cart-items");
-    var isServerEmpty = mainEl.getAttribute("data-cart-empty") === "true";
-    if (serverItemsJson === null) {
-      return;
-    }
+  async function flush() {
+    if (saving || pending.size === 0) return;
+    saving = true;
+    setStatus("Guardando cambios…");
+    let message = "";
     try {
-      if (!isServerEmpty) {
-        localStorage.setItem(CART_STORAGE_KEY, serverItemsJson);
-      } else {
-        var savedCart = localStorage.getItem(CART_STORAGE_KEY);
-        var syncKey = "la_cesta_sync_attempted";
-        if (
-          savedCart &&
-          savedCart !== "[]" &&
-          sessionStorage.getItem(syncKey) !== "true"
-        ) {
-          sessionStorage.setItem(syncKey, "true");
-          var syncForm = document.getElementById("cart-sync-form");
-          var syncInput = document.getElementById("cart-sync-input");
-          var banner = document.getElementById("cart-restore-banner");
-          if (syncForm && syncInput) {
-            if (banner) {
-              banner.hidden = false;
-            }
-            syncInput.value = savedCart;
-            syncForm.submit();
+      while (pending.size > 0) {
+        const [id, update] = pending.entries().next().value;
+        pending.delete(id);
+        const line = rows.get(id);
+        line.savingQuantity = update.quantity;
+        try {
+          const data = new FormData(update.form);
+          data.set("cantidad", String(update.quantity));
+          data.set("ajax", "true");
+          const response = await fetch(update.form.action, {
+            method: "POST",
+            body: data,
+            credentials: "same-origin",
+            headers: {Accept: "application/json"}
+          });
+          if (response.redirected) {
+            window.location.assign(response.url);
             return;
           }
-        } else {
-          localStorage.removeItem(CART_STORAGE_KEY);
-          sessionStorage.removeItem(syncKey);
+          if (!response.ok || !response.headers.get("content-type")?.includes("application/json")) {
+            throw new Error("La actualización no pudo guardarse");
+          }
+          const result = await response.json();
+          const confirmed = new Map(result.items.map(item => [item.id, item]));
+          if (result.mensaje) message = result.mensaje;
+          reloadNeeded = result.items.some(item => !rows.has(item.id));
+          for (const [productId, current] of rows) {
+            const item = confirmed.get(productId);
+            if (!item) {
+              pending.delete(productId);
+              current.row.remove();
+              rows.delete(productId);
+              continue;
+            }
+            current.cantidad = item.cantidad;
+            current.precio = item.precio;
+            current.precioFinal = item.precioFinal;
+            current.input.max = item.stock;
+            current.row.querySelector("[data-cart-stock]").textContent = item.stock + " disponibles en tienda";
+            const next = pending.get(productId);
+            current.input.value = next?.quantity ?? item.cantidad;
+          }
+          delete line.savingQuantity;
+          renderTotals();
+        } catch (error) {
+          if (!pending.has(id)) pending.set(id, update);
+          throw error;
+        } finally {
+          delete line.savingQuantity;
         }
       }
-    } catch (e) {
-      // Ignorar errores de almacenamiento
+      saving = false;
+      if (rows.size === 0) {
+        window.location.reload();
+      } else if (reloadNeeded) {
+        setStatus("Tu carrito cambió en otra pestaña. Recarga para revisar los productos.", true);
+      } else {
+        setStatus(message || "Cambios guardados.");
+      }
+    } catch {
+      saving = false;
+      setStatus("No pudimos confirmar los cambios. Reintenta para guardarlos.", true);
     }
   }
 
-  syncLocalStorageFromMain(main);
-
-  // Actualizar en segundo plano (sin recargar ni mover el scroll) al cambiar cantidades en /carrito
-  function submitCartUpdateAjax(form, focusTargetInfo) {
-    var scrollY = window.scrollY;
-    var formData = new FormData(form);
-
-    fetch(form.action, {
-      method: "POST",
-      body: formData,
-      credentials: "same-origin"
-    })
-      .then(function (response) {
-        if (!response.ok) {
-          throw new Error("Error al actualizar carrito");
-        }
-        return response.text();
-      })
-      .then(function (html) {
-        var parser = new DOMParser();
-        var doc = parser.parseFromString(html, "text/html");
-        var newMain = doc.getElementById("contenido");
-        if (!newMain) {
-          window.location.reload();
-          return;
-        }
-
-        // Si el carrito quedó vacío tras la acción, reemplazamos el contenido principal
-        if (newMain.getAttribute("data-cart-empty") === "true") {
-          try {
-            localStorage.removeItem(CART_STORAGE_KEY);
-          } catch (e) {
-            // Ignorar
-          }
-          main.setAttribute("data-cart-items", "[]");
-          main.setAttribute("data-cart-empty", "true");
-          main.innerHTML = newMain.innerHTML;
-          updateNavBadge(doc);
-          window.scrollTo(0, scrollY);
-          return;
-        }
-
-        // Actualizar atributos de sincronización y localStorage
-        var newItemsJson = newMain.getAttribute("data-cart-items") || "[]";
-        main.setAttribute("data-cart-items", newItemsJson);
-        main.setAttribute("data-cart-empty", "false");
-        try {
-          localStorage.setItem(CART_STORAGE_KEY, newItemsJson);
-        } catch (e) {
-          // Ignorar
-        }
-
-        // Actualizar lista de productos
-        var currentItemsSection = document.querySelector(".cart-items-section");
-        var newItemsSection = doc.querySelector(".cart-items-section");
-        if (currentItemsSection && newItemsSection) {
-          currentItemsSection.innerHTML = newItemsSection.innerHTML;
-        }
-
-        // Actualizar totales del resumen (sin tocar lo que el usuario escribió en dirección/teléfono)
-        var currentTotals = document.getElementById("cart-summary-totals");
-        var newTotals = doc.getElementById("cart-summary-totals");
-        if (currentTotals && newTotals) {
-          currentTotals.innerHTML = newTotals.innerHTML;
-        }
-
-        // Actualizar avisos solo si hubo advertencia (ej. límite de stock)
-        var currentFlash = document.getElementById("cart-flash-container");
-        var newFlash = doc.getElementById("cart-flash-container");
-        if (currentFlash && newFlash) {
-          currentFlash.innerHTML = newFlash.innerHTML;
-        }
-
-        // Actualizar contador en el header
-        updateNavBadge(doc);
-
-        // Volver a enlazar eventos sobre los nuevos botones
-        bindCartItemEvents();
-
-        // Mantener exactamente la misma posición de scroll y el foco en el botón pulsado
-        window.scrollTo(0, scrollY);
-        if (focusTargetInfo && focusTargetInfo.productId) {
-          var targetForm = document.querySelector(
-            '.cart-qty-form[data-product-id="' + focusTargetInfo.productId + '"]'
-          );
-          if (targetForm) {
-            var toFocus = null;
-            if (focusTargetInfo.step) {
-              toFocus = targetForm.querySelector(
-                '.cart-step-btn[data-step="' + focusTargetInfo.step + '"]'
-              );
-            } else if (focusTargetInfo.isInput) {
-              toFocus = targetForm.querySelector(".cart-qty-input");
-            } else {
-              toFocus = targetForm.querySelector(".cart-update-btn");
-            }
-            if (toFocus && typeof toFocus.focus === "function") {
-              toFocus.focus({ preventScroll: true });
-            }
-          }
-        }
-      })
-      .catch(function () {
-        // Si falla fetch por red, guardar scroll y enviar normalmente
-        try {
-          sessionStorage.setItem(SCROLL_STORAGE_KEY, String(window.scrollY));
-        } catch (e) {
-          // Ignorar
-        }
-        form.submit();
-      });
+  function schedule(form) {
+    const line = rows.get(form.dataset.productId);
+    if (!line?.input.validity.valid) return;
+    pending.set(form.dataset.productId, {form, quantity: line.input.valueAsNumber});
+    renderTotals();
+    setStatus("Guardando cambios…");
+    clearTimeout(timer);
+    timer = setTimeout(flush, 150);
   }
 
-  function bindCartItemEvents() {
-    // Limpiar localStorage al pulsar "Vaciar carrito"
-    var clearBtn = document.querySelector(".cart-clear-btn");
-    if (clearBtn && clearBtn.form) {
-      clearBtn.form.addEventListener("submit", function () {
-        try {
-          localStorage.removeItem(CART_STORAGE_KEY);
-        } catch (e) {
-          // Ignorar
-        }
-      });
+  retry.addEventListener("click", () => {
+    if (reloadNeeded) window.location.reload();
+    else flush();
+  });
+
+  cart.addEventListener("click", event => {
+    const button = event.target.closest(".cart-step-btn");
+    if (!button) return;
+    const form = button.form;
+    const input = form.querySelector(".cart-qty-input");
+    const current = input.valueAsNumber || rows.get(form.dataset.productId).cantidad;
+    const next = Math.max(1, Math.min(Number(input.max), current + Number(button.dataset.step)));
+    if (next !== input.valueAsNumber) {
+      input.value = next;
+      schedule(form);
     }
+  });
 
-    // Guardar scroll al quitar un producto individual
-    var removeBtns = document.querySelectorAll(".cart-remove-btn");
-    removeBtns.forEach(function (btn) {
-      if (btn.form) {
-        btn.form.addEventListener("submit", function () {
-          try {
-            sessionStorage.setItem(SCROLL_STORAGE_KEY, String(window.scrollY));
-          } catch (e) {
-            // Ignorar
-          }
-        });
-      }
-    });
+  cart.addEventListener("input", event => {
+    if (event.target.matches(".cart-qty-input")) schedule(event.target.form);
+  });
 
-    // Botones +/- para cambiar cantidad sin recargar la página
-    var stepButtons = document.querySelectorAll(".cart-step-btn");
-    stepButtons.forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        var step = parseInt(btn.getAttribute("data-step") || "0", 10);
-        var form = btn.closest(".cart-qty-form");
-        if (!form) {
-          return;
-        }
-        var input = form.querySelector(".cart-qty-input");
-        if (!input) {
-          return;
-        }
-        var current = parseInt(input.value || "1", 10);
-        var min = parseInt(input.getAttribute("min") || "1", 10);
-        var max = parseInt(input.getAttribute("max") || "999999", 10);
-        var next = Math.max(min, Math.min(max, current + step));
-        if (next !== current) {
-          input.value = String(next);
-          submitCartUpdateAjax(form, {
-            productId: form.getAttribute("data-product-id"),
-            step: String(step)
-          });
-        }
-      });
-    });
-
-    // Envío manual del formulario de cantidad (botón Actualizar o Enter en el input)
-    var qtyForms = document.querySelectorAll(".cart-qty-form");
-    qtyForms.forEach(function (form) {
-      form.addEventListener("submit", function (event) {
-        event.preventDefault();
-        submitCartUpdateAjax(form, {
-          productId: form.getAttribute("data-product-id"),
-          isInput: true
-        });
-      });
-    });
-  }
-
-  bindCartItemEvents();
-
-  // Autocompletado y persistencia de los datos de entrega en localStorage
-  var checkoutForm = document.getElementById("cart-checkout-form");
-  if (checkoutForm) {
-    var fields = ["direccion", "telefono", "referencia"];
-    var autofillBadge = document.getElementById("cart-autofill-badge");
-
-    try {
-      var savedDeliveryRaw = localStorage.getItem(DELIVERY_STORAGE_KEY);
-      if (savedDeliveryRaw) {
-        var savedDelivery = JSON.parse(savedDeliveryRaw);
-        var restoredAny = false;
-        fields.forEach(function (name) {
-          var el = document.getElementById(name);
-          if (el && (!el.value || el.value.trim() === "") && savedDelivery[name]) {
-            el.value = savedDelivery[name];
-            if (name === "direccion" || name === "telefono") {
-              restoredAny = true;
-            }
-          }
-        });
-        if (restoredAny && autofillBadge) {
-          autofillBadge.hidden = false;
-        }
-      }
-    } catch (e) {
-      // Ignorar errores de parseo
+  cart.addEventListener("submit", event => {
+    if (event.target.matches(".cart-qty-form")) {
+      event.preventDefault();
+      schedule(event.target);
+    } else if (checkoutButton.disabled) {
+      event.preventDefault();
     }
-
-    var saveDeliveryToLocal = function () {
-      try {
-        var data = {};
-        fields.forEach(function (name) {
-          var el = document.getElementById(name);
-          if (el) {
-            data[name] = el.value;
-          }
-        });
-        localStorage.setItem(DELIVERY_STORAGE_KEY, JSON.stringify(data));
-      } catch (e) {
-        // Ignorar
-      }
-    };
-
-    fields.forEach(function (name) {
-      var el = document.getElementById(name);
-      if (el) {
-        el.addEventListener("input", saveDeliveryToLocal);
-      }
-    });
-
-    checkoutForm.addEventListener("submit", saveDeliveryToLocal);
-  }
+  });
 })();

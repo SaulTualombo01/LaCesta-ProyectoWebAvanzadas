@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,7 +16,9 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.server.ResponseStatusException;
 
 @Controller
 public class CarritoController {
@@ -36,7 +39,9 @@ public class CarritoController {
             Authentication authentication,
             Model model) {
 
-        ResumenCarrito resumen = carrito.obtenerResumen(session);
+        var vista = carrito.obtenerVista(usuarioId(authentication));
+        ResumenCarrito resumen = vista.resumen();
+        model.addAttribute("intentoCompra", vista.intento());
         model.addAttribute("resumen", resumen);
         model.addAttribute("carritoCantidad", resumen.totalUnidades());
 
@@ -60,11 +65,11 @@ public class CarritoController {
             @RequestParam Long productoId,
             @RequestParam(defaultValue = "1") int cantidad,
             @RequestParam(required = false) String origen,
-            HttpSession session,
+            Authentication authentication,
             RedirectAttributes aviso) {
 
         try {
-            String mensaje = carrito.agregar(session, productoId, cantidad);
+            String mensaje = carrito.agregar(usuarioId(authentication), productoId, cantidad);
             aviso.addFlashAttribute(EXITO, mensaje);
         } catch (IllegalArgumentException e) {
             aviso.addFlashAttribute(ERROR, e.getMessage());
@@ -73,52 +78,35 @@ public class CarritoController {
         return redirigirSegunOrigen(origen);
     }
 
-    @PostMapping("/carrito/items/{productoId}/cantidad")
+    @PostMapping(value = "/carrito/items/{productoId}/cantidad", params = "!ajax")
     public String actualizarCantidad(
-            @PathVariable Long productoId,
-            @RequestParam int cantidad,
-            HttpSession session,
-            RedirectAttributes aviso) {
-
-        try {
-            String mensaje = carrito.actualizarCantidad(session, productoId, cantidad);
-            if (mensaje != null && !mensaje.isBlank()) {
-                aviso.addFlashAttribute(EXITO, mensaje);
-            }
-        } catch (IllegalArgumentException e) {
-            aviso.addFlashAttribute(ERROR, e.getMessage());
+            @PathVariable Long productoId, @RequestParam int cantidad,
+            Authentication authentication, RedirectAttributes aviso) {
+        var actualizacion = carrito.actualizarCantidad(usuarioId(authentication), productoId, cantidad);
+        if (actualizacion.mensaje() != null) {
+            aviso.addFlashAttribute(EXITO, actualizacion.mensaje());
         }
-
         return REDIRECT_CARRITO;
     }
 
-    @PostMapping("/carrito/items/{productoId}/eliminar")
-    public String eliminar(
-            @PathVariable Long productoId,
-            HttpSession session,
-            RedirectAttributes aviso) {
+    @ResponseBody
+    @PostMapping(value = "/carrito/items/{productoId}/cantidad", params = "ajax")
+    public ActualizacionCarrito actualizarCantidadAjax(
+            @PathVariable Long productoId, @RequestParam int cantidad, Authentication authentication) {
+        return carrito.actualizarCantidad(usuarioId(authentication), productoId, cantidad);
+    }
 
-        carrito.eliminar(session, productoId);
+    @PostMapping("/carrito/items/{productoId}/eliminar")
+    public String eliminar(@PathVariable Long productoId, Authentication authentication, RedirectAttributes aviso) {
+        carrito.eliminar(usuarioId(authentication), productoId);
         aviso.addFlashAttribute(EXITO, "Producto retirado del carrito.");
         return REDIRECT_CARRITO;
     }
 
     @PostMapping("/carrito/vaciar")
-    public String vaciar(
-            HttpSession session,
-            RedirectAttributes aviso) {
-
-        carrito.vaciar(session);
+    public String vaciar(Authentication authentication, RedirectAttributes aviso) {
+        carrito.vaciar(usuarioId(authentication));
         aviso.addFlashAttribute(EXITO, "Se vació el carrito.");
-        return REDIRECT_CARRITO;
-    }
-
-    @PostMapping("/carrito/sincronizar")
-    public String sincronizar(
-            @RequestParam(defaultValue = "[]") String itemsJson,
-            HttpSession session) {
-
-        carrito.sincronizarDesdeLocal(session, itemsJson);
         return REDIRECT_CARRITO;
     }
 
@@ -126,34 +114,34 @@ public class CarritoController {
     public String confirmar(
             @Valid @ModelAttribute("entrega") DatosEntregaForm entrega,
             BindingResult errores,
+            @RequestParam UUID intentoCompra,
             HttpSession session,
             Authentication authentication,
             Model model,
             RedirectAttributes aviso) {
 
-        ResumenCarrito resumen = carrito.obtenerResumen(session);
-        if (resumen.isVacio()) {
-            aviso.addFlashAttribute(
-                    ERROR,
-                    "Tu carrito está vacío. Agrega productos antes de confirmar el pedido."
-            );
-            return REDIRECT_CARRITO;
-        }
-
+        UUID usuario = usuarioId(authentication);
         if (errores.hasErrors()) {
+            var vista = carrito.obtenerVista(usuario);
+            if (vista.resumen().isVacio()) {
+                return REDIRECT_CARRITO;
+            }
             carrito.guardarDatosEntrega(session, entrega);
-            model.addAttribute("resumen", resumen);
-            model.addAttribute("carritoCantidad", resumen.totalUnidades());
+            model.addAttribute("resumen", vista.resumen());
+            model.addAttribute("intentoCompra", vista.intento());
+            model.addAttribute("carritoCantidad", vista.resumen().totalUnidades());
             model.addAttribute("entregaAutocompletada", false);
             return "cart/index";
         }
 
         try {
-            Pedido pedido = carrito.confirmarPedido(
-                    session,
-                    usuarioId(authentication),
-                    entrega
-            );
+            Pedido pedido = carrito.confirmarPedido(usuario, intentoCompra, entrega);
+            if (pedido == null) {
+                carrito.guardarDatosEntrega(session, entrega);
+                aviso.addFlashAttribute(ERROR, "Cambió el stock. Revisa las cantidades antes de confirmar.");
+                return REDIRECT_CARRITO;
+            }
+            carrito.guardarDatosEntrega(session, entrega);
             aviso.addFlashAttribute(
                     EXITO,
                     "Pedido confirmado."
@@ -168,12 +156,11 @@ public class CarritoController {
     @GetMapping("/carrito/confirmado/{id}")
     public String verConfirmado(
             @PathVariable Long id,
-            HttpSession session,
             Authentication authentication,
             Model model,
             RedirectAttributes aviso) {
 
-        Pedido pedido = carrito.consultarPedido(id);
+        Pedido pedido = carrito.consultarPedido(id, usuarioId(authentication));
         if (pedido == null) {
             aviso.addFlashAttribute(
                     ERROR,
@@ -184,21 +171,25 @@ public class CarritoController {
 
         model.addAttribute("pedido", pedido);
         model.addAttribute("cliente", nombreUsuario(authentication));
-        model.addAttribute("carritoCantidad", carrito.contarUnidades(session));
+        model.addAttribute("carritoCantidad", carrito.contarUnidades(usuarioId(authentication)));
         return "cart/confirmed";
     }
 
     @PostMapping("/carrito/pedidos/{id}/restaurar")
     public String restaurarPedido(
             @PathVariable Long id,
-            HttpSession session,
+            Authentication authentication,
             RedirectAttributes aviso) {
 
-        carrito.restaurarPedidoAlCarrito(session, id);
-        aviso.addFlashAttribute(
-                EXITO,
-                "Los productos volvieron a tu carrito para que puedas editarlos."
-        );
+        try {
+            if (carrito.restaurarPedidoAlCarrito(usuarioId(authentication), id)) {
+                aviso.addFlashAttribute(EXITO, "Los productos volvieron a tu carrito para que puedas editarlos.");
+            } else {
+                aviso.addFlashAttribute(ERROR, "Ese pedido no se puede volver a editar.");
+            }
+        } catch (IllegalStateException e) {
+            aviso.addFlashAttribute(ERROR, e.getMessage());
+        }
         return REDIRECT_CARRITO;
     }
 
@@ -252,7 +243,7 @@ public class CarritoController {
                 && authentication.getPrincipal() instanceof CestaPrincipal principal) {
             return principal.id();
         }
-        return null;
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN);
     }
 
     private String nombreUsuario(Authentication authentication) {

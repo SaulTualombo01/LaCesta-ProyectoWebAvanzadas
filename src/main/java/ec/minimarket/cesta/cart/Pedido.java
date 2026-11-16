@@ -35,6 +35,9 @@ public class Pedido {
     @Column(name = "usuario_id")
     private UUID usuarioId;
 
+    @Column(name = "intento_compra")
+    private UUID intentoCompra;
+
     @Column(name = "direccion_entrega", nullable = false, length = 180)
     private String direccionEntrega;
 
@@ -67,10 +70,12 @@ public class Pedido {
 
     public Pedido(
             UUID usuarioId,
+            UUID intentoCompra,
             DatosEntregaForm entrega,
             ResumenCarrito resumen,
             Instant creadoEn) {
         this.usuarioId = usuarioId;
+        this.intentoCompra = intentoCompra;
         this.direccionEntrega = entrega.direccion();
         this.telefonoContacto = entrega.telefono();
         this.referenciaEntrega = entrega.referencia().isBlank() ? null : entrega.referencia();
@@ -91,6 +96,10 @@ public class Pedido {
 
     public UUID getUsuarioId() {
         return usuarioId;
+    }
+
+    public UUID getIntentoCompra() {
+        return intentoCompra;
     }
 
     public String getDireccionEntrega() {

@@ -94,6 +94,20 @@ public class Producto {
         return precio;
     }
 
+    public void descontarStock(int cantidad) {
+        if (cantidad <= 0 || cantidad > stock) {
+            throw new IllegalArgumentException("Cantidad fuera del stock disponible.");
+        }
+        stock -= cantidad;
+    }
+
+    public void reponerStock(int cantidad) {
+        if (cantidad <= 0 || (long) stock + cantidad > 999999) {
+            throw new IllegalStateException("La devolución supera el stock máximo de «" + nombre + "».");
+        }
+        stock += cantidad;
+    }
+
     public int getStock() {
         return stock;
     }
