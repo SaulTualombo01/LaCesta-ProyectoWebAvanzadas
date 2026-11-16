@@ -1,6 +1,7 @@
 package ec.minimarket.cesta.cart;
 
 import ec.minimarket.cesta.catalog.Producto;
+import ec.minimarket.cesta.catalog.ProductoAgotado;
 import ec.minimarket.cesta.catalog.ProductoRepository;
 import jakarta.servlet.http.HttpSession;
 import java.math.BigDecimal;
@@ -10,8 +11,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,24 +23,39 @@ import org.springframework.web.server.ResponseStatusException;
 @Transactional(readOnly = true)
 public class CarritoService {
 
-    static final String ATRIBUTO_CARRITO = "LA_CESTA_CARRITO";
     static final String ATRIBUTO_ENTREGA = "LA_CESTA_DATOS_ENTREGA";
-
-    private static final Pattern PAR_JSON = Pattern.compile(
-            "\"id\"\\s*:\\s*(\\d+)\\s*,\\s*\"cantidad\"\\s*:\\s*(\\d+)"
-    );
 
     private final ProductoRepository productos;
     private final PedidoRepository pedidos;
+    private final CarritoGuardado guardado;
 
-    public CarritoService(ProductoRepository productos, PedidoRepository pedidos) {
+    private final ApplicationEventPublisher eventos;
+
+    public CarritoService(ProductoRepository productos, PedidoRepository pedidos, CarritoGuardado guardado,
+                          ApplicationEventPublisher eventos) {
         this.productos = productos;
         this.pedidos = pedidos;
+        this.guardado = guardado;
+        this.eventos = eventos;
     }
 
-    public ResumenCarrito obtenerResumen(HttpSession session) {
-        Map<Long, Integer> mapa = obtenerMapa(session, false);
-        if (mapa == null || mapa.isEmpty()) {
+    record Vista(ResumenCarrito resumen, UUID intento) {}
+
+    Vista obtenerVista(UUID usuarioId) {
+        var estado = guardado.leer(usuarioId);
+        return new Vista(resumir(estado.cantidades()), estado.intento());
+    }
+
+    public ResumenCarrito obtenerResumen(UUID usuarioId) {
+        return obtenerVista(usuarioId).resumen();
+    }
+
+    private ResumenCarrito resumir(Map<Long, Integer> mapa) {
+        return resumir(mapa, mapa.isEmpty() ? List.of() : productos.findByIdIn(mapa.keySet()));
+    }
+
+    private ResumenCarrito resumir(Map<Long, Integer> mapa, List<Producto> filas) {
+        if (mapa.isEmpty()) {
             return new ResumenCarrito(
                     List.of(),
                     0,
@@ -55,26 +72,15 @@ public class CarritoService {
         BigDecimal descuentoPromociones = BigDecimal.ZERO.setScale(2);
         BigDecimal totalPagar = BigDecimal.ZERO.setScale(2);
 
-        List<Long> paraEliminar = new ArrayList<>();
-
+        var disponibles = filas.stream()
+                .collect(Collectors.toMap(Producto::getId, Function.identity()));
         for (Map.Entry<Long, Integer> entrada : mapa.entrySet()) {
-            Long idProducto = entrada.getKey();
-            int solicitada = entrada.getValue() == null ? 0 : entrada.getValue();
-            if (solicitada <= 0) {
-                paraEliminar.add(idProducto);
-                continue;
-            }
-
-            Producto producto = productos.findById(idProducto).orElse(null);
+            Producto producto = disponibles.get(entrada.getKey());
             if (producto == null || producto.getStock() <= 0) {
-                paraEliminar.add(idProducto);
                 continue;
             }
 
-            int cantidadEfectiva = Math.min(solicitada, producto.getStock());
-            if (cantidadEfectiva != solicitada) {
-                entrada.setValue(cantidadEfectiva);
-            }
+            int cantidadEfectiva = Math.min(entrada.getValue(), producto.getStock());
 
             CarritoItem item = new CarritoItem(producto, cantidadEfectiva);
             items.add(item);
@@ -82,10 +88,6 @@ public class CarritoService {
             subtotalRegular = subtotalRegular.add(item.getSubtotalRegular());
             descuentoPromociones = descuentoPromociones.add(item.getAhorroLinea());
             totalPagar = totalPagar.add(item.getSubtotalFinal());
-        }
-
-        for (Long id : paraEliminar) {
-            mapa.remove(id);
         }
 
         return new ResumenCarrito(
@@ -98,85 +100,68 @@ public class CarritoService {
         );
     }
 
-    public int contarUnidades(HttpSession session) {
-        return obtenerResumen(session).totalUnidades();
+    public int contarUnidades(UUID usuarioId) {
+        return obtenerResumen(usuarioId).totalUnidades();
     }
 
-    public String agregar(HttpSession session, Long productoId, int cantidad) {
+    @Transactional
+    public String agregar(UUID usuarioId, Long productoId, int cantidad) {
         if (cantidad <= 0) {
             throw new IllegalArgumentException("La cantidad a agregar debe ser al menos 1.");
         }
-
+        var mapa = guardado.bloquear(usuarioId);
         Producto producto = consultarProductoDisponible(productoId);
-        Map<Long, Integer> mapa = obtenerMapa(session, true);
-        int actual = mapa.getOrDefault(productoId, 0);
-        int nuevaCantidad = actual + cantidad;
-
-        if (nuevaCantidad > producto.getStock()) {
-            mapa.put(productoId, producto.getStock());
-            return "Se ajustó «" + producto.getNombre()
-                    + "» al stock máximo disponible (" + producto.getStock() + ").";
+        long solicitada = (long) mapa.getOrDefault(productoId, 0) + cantidad;
+        mapa.put(productoId, (int) Math.min(solicitada, producto.getStock()));
+        guardado.guardar(usuarioId, mapa);
+        if (solicitada > producto.getStock()) {
+            return "Se ajustó «" + producto.getNombre() + "» al stock disponible (" + producto.getStock() + ").";
         }
-
-        mapa.put(productoId, nuevaCantidad);
         return "Se agregó «" + producto.getNombre() + "» a tu carrito.";
     }
 
-    public String actualizarCantidad(HttpSession session, Long productoId, int cantidad) {
-        Map<Long, Integer> mapa = obtenerMapa(session, true);
-        if (cantidad <= 0) {
+    @Transactional
+    public ActualizacionCarrito actualizarCantidad(UUID usuarioId, Long productoId, int cantidad) {
+        var mapa = guardado.bloquear(usuarioId);
+        if (!mapa.containsKey(productoId)) {
+            return ActualizacionCarrito.desde(resumir(mapa).items(), "El producto ya no está en tu carrito.");
+        }
+
+        var resumen = resumir(mapa);
+        var item = resumen.items().stream().filter(linea -> linea.producto().getId().equals(productoId))
+                .findFirst().orElse(null);
+        String mensaje = null;
+        if (item == null || cantidad <= 0) {
             mapa.remove(productoId);
-            return "Producto retirado del carrito.";
-        }
-
-        Producto producto = consultarProductoDisponible(productoId);
-        if (cantidad > producto.getStock()) {
-            mapa.put(productoId, producto.getStock());
-            return "Solo hay " + producto.getStock() + " unidades disponibles de «"
-                    + producto.getNombre() + "».";
-        }
-
-        mapa.put(productoId, cantidad);
-        return null;
-    }
-
-    public void eliminar(HttpSession session, Long productoId) {
-        Map<Long, Integer> mapa = obtenerMapa(session, false);
-        if (mapa != null) {
-            mapa.remove(productoId);
-        }
-    }
-
-    public void vaciar(HttpSession session) {
-        session.removeAttribute(ATRIBUTO_CARRITO);
-    }
-
-    public void sincronizarDesdeLocal(HttpSession session, String json) {
-        if (json == null || json.isBlank()) {
-            return;
-        }
-        Map<Long, Integer> actual = obtenerMapa(session, false);
-        if (actual != null && !actual.isEmpty()) {
-            return;
-        }
-        Map<Long, Integer> mapa = obtenerMapa(session, true);
-        Matcher matcher = PAR_JSON.matcher(json);
-        int contador = 0;
-        while (matcher.find() && contador < 40) {
-            contador++;
-            try {
-                Long id = Long.valueOf(matcher.group(1));
-                int cantidad = Integer.parseInt(matcher.group(2));
-                if (cantidad > 0) {
-                    Producto prod = productos.findById(id).orElse(null);
-                    if (prod != null && prod.getStock() > 0) {
-                        mapa.put(id, Math.min(cantidad, prod.getStock()));
-                    }
-                }
-            } catch (NumberFormatException ignored) {
-                // Ignora entradas malformadas del almacenamiento local.
+            mensaje = item == null ? "El producto ya no está disponible." : "Producto retirado del carrito.";
+        } else {
+            int stock = item.producto().getStock();
+            mapa.put(productoId, Math.min(cantidad, stock));
+            if (cantidad > stock) {
+                mensaje = "Solo hay " + stock + " unidades disponibles de «" + item.producto().getNombre() + "».";
             }
         }
+        guardado.guardar(usuarioId, mapa);
+        var items = resumen.items().stream()
+                .filter(linea -> mapa.containsKey(linea.producto().getId()))
+                .map(linea -> linea.producto().getId().equals(productoId)
+                        ? new CarritoItem(linea.producto(), mapa.get(productoId)) : linea)
+                .toList();
+        return ActualizacionCarrito.desde(items, mensaje);
+    }
+
+    @Transactional
+    public void eliminar(UUID usuarioId, Long productoId) {
+        var mapa = guardado.bloquear(usuarioId);
+        if (mapa.remove(productoId) != null) {
+            guardado.guardar(usuarioId, mapa);
+        }
+    }
+
+    @Transactional
+    public void vaciar(UUID usuarioId) {
+        guardado.bloquear(usuarioId);
+        guardado.vaciar(usuarioId);
     }
 
     public DatosEntregaForm obtenerDatosEntrega(HttpSession session, UUID usuarioId) {
@@ -202,40 +187,43 @@ public class CarritoService {
     }
 
     @Transactional
-    public Pedido confirmarPedido(
-            HttpSession session,
-            UUID usuarioId,
-            DatosEntregaForm entrega) {
-        ResumenCarrito resumen = obtenerResumen(session);
-        if (resumen.isVacio()) {
-            throw new IllegalStateException("Tu carrito está vacío. Agrega productos antes de continuar.");
+    public Pedido confirmarPedido(UUID usuarioId, UUID intentoCompra, DatosEntregaForm entrega) {
+        var mapa = guardado.bloquear(usuarioId);
+        var yaConfirmado = pedidos.findByUsuarioIdAndIntentoCompra(usuarioId, intentoCompra);
+        if (yaConfirmado.isPresent()) {
+            return yaConfirmado.get();
+        }
+        if (!intentoCompra.equals(guardado.intento(usuarioId)) || mapa.isEmpty()) {
+            throw new IllegalStateException("El carrito cambió. Revisa los productos antes de continuar.");
+        }
+
+        var resumen = resumir(mapa, productos.bloquearStock(mapa.keySet()));
+        var disponibles = new LinkedHashMap<Long, Integer>();
+        for (var item : resumen.items()) {
+            disponibles.put(item.producto().getId(), item.cantidad());
+        }
+        if (!mapa.equals(disponibles)) {
+            guardado.guardar(usuarioId, disponibles);
+            return null;
         }
 
         DatosEntregaForm normalizado = entrega.normalizado();
-        guardarDatosEntrega(session, normalizado);
-
-        Pedido pedido = new Pedido(
-                usuarioId,
-                normalizado,
-                resumen,
-                Instant.now()
-        );
-
+        Pedido pedido = new Pedido(usuarioId, intentoCompra, normalizado, resumen, Instant.now());
         for (CarritoItem item : resumen.items()) {
-            pedido.agregarDetalle(
-                    item.producto(),
-                    item.cantidad(),
-                    item.producto().getPrecioFinal()
-            );
+            Producto producto = item.producto();
+            producto.descontarStock(item.cantidad());
+            pedido.agregarDetalle(producto, item.cantidad(), producto.getPrecioFinal());
+            if (producto.getStock() == 0) {
+                eventos.publishEvent(new ProductoAgotado(producto.getId(), producto.getNombre()));
+            }
         }
-
-        Pedido guardado = pedidos.save(pedido);
-        vaciar(session);
-        return guardado;
+        Pedido confirmado = pedidos.save(pedido);
+        guardado.vaciar(usuarioId);
+        return confirmado;
     }
 
-    public Pedido consultarPedido(Long id) {
-        return pedidos.findWithDetallesById(id).orElse(null);
+    public Pedido consultarPedido(Long id, UUID usuarioId) {
+        return pedidos.findWithDetallesByIdAndUsuarioId(id, usuarioId).orElse(null);
     }
 
     public List<Pedido> listarTodosLosPedidos() {
@@ -244,27 +232,36 @@ public class CarritoService {
 
     @Transactional
     public Pedido cambiarEstadoEntrega(Long pedidoId) {
-        Pedido pedido = pedidos.findById(pedidoId)
+        Pedido pedido = pedidos.bloquear(pedidoId)
                 .orElseThrow(() -> new IllegalArgumentException("El pedido seleccionado no existe."));
         pedido.alternarEstadoEntrega();
         return pedidos.save(pedido);
     }
 
     @Transactional
-    public void restaurarPedidoAlCarrito(HttpSession session, Long pedidoId) {
-        Pedido pedido = pedidos.findWithDetallesById(pedidoId).orElse(null);
-        if (pedido == null || pedido.getDetalles().isEmpty()) {
-            return;
+    public boolean restaurarPedidoAlCarrito(UUID usuarioId, Long pedidoId) {
+        var mapa = guardado.bloquear(usuarioId);
+        Pedido pedido = pedidos.bloquear(pedidoId).orElse(null);
+        if (pedido == null || !usuarioId.equals(pedido.getUsuarioId())
+                || pedido.isEntregado() || pedido.getDetalles().isEmpty()) {
+            return false;
         }
-        Map<Long, Integer> mapa = obtenerMapa(session, true);
+        var ids = pedido.getDetalles().stream().map(detalle -> detalle.getProducto().getId()).toList();
+        var bloqueados = productos.bloquearStock(ids).stream()
+                .collect(Collectors.toMap(Producto::getId, Function.identity()));
         for (PedidoDetalle detalle : pedido.getDetalles()) {
-            Producto prod = productos.findById(detalle.getProducto().getId()).orElse(null);
-            if (prod != null && prod.getStock() > 0) {
-                int acumulada = mapa.getOrDefault(prod.getId(), 0) + detalle.getCantidad();
-                mapa.put(prod.getId(), Math.min(acumulada, prod.getStock()));
+            Producto producto = bloqueados.get(detalle.getProducto().getId());
+            if (pedido.getIntentoCompra() != null) {
+                producto.reponerStock(detalle.getCantidad());
+            }
+            if (producto.getStock() > 0) {
+                long acumulada = (long) mapa.getOrDefault(producto.getId(), 0) + detalle.getCantidad();
+                mapa.put(producto.getId(), (int) Math.min(acumulada, producto.getStock()));
             }
         }
+        guardado.guardar(usuarioId, mapa);
         pedidos.delete(pedido);
+        return true;
     }
 
     private Producto consultarProductoDisponible(Long id) {
@@ -281,17 +278,5 @@ public class CarritoService {
         return producto;
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<Long, Integer> obtenerMapa(HttpSession session, boolean crear) {
-        Object atributo = session.getAttribute(ATRIBUTO_CARRITO);
-        if (atributo instanceof Map<?, ?> existente) {
-            return (Map<Long, Integer>) existente;
-        }
-        if (!crear) {
-            return null;
-        }
-        Map<Long, Integer> nuevo = new LinkedHashMap<>();
-        session.setAttribute(ATRIBUTO_CARRITO, nuevo);
-        return nuevo;
-    }
+
 }

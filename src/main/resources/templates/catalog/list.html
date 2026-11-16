@@ -19,15 +19,18 @@
     <section class="container home-offers"
              aria-labelledby="home-offers-title">
 
-      <div>
+      <div class="home-offers-copy">
         <h2 id="home-offers-title">Ofertas especiales</h2>
-        <p>Descuentos en productos de tu compra diaria.</p>
+        <p>Ahorra en despensa, bebidas y más.</p>
+        <a class="editorial-button" th:href="@{/ofertas}">
+          Ver ofertas <span aria-hidden="true">↗</span>
+        </a>
       </div>
 
-      <a class="button offer-cta"
-         th:href="@{/ofertas}">
-        Ver ofertas <span aria-hidden="true">↗</span>
-      </a>
+      <div class="home-offers-photo">
+        <img th:src="@{/img/editorial/ofertas-portada.jpg}" alt="" width="1200" height="800"
+             loading="lazy" decoding="async">
+      </div>
 
     </section>
 

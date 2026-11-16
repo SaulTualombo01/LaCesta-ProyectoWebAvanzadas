@@ -1,6 +1,8 @@
 package ec.minimarket.cesta.cart;
 
-import jakarta.servlet.http.HttpSession;
+import ec.minimarket.cesta.account.CestaPrincipal;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
@@ -14,7 +16,12 @@ public class CarritoAdvice {
     }
 
     @ModelAttribute("carritoCantidad")
-    public int carritoCantidad(HttpSession session) {
-        return carritoService.contarUnidades(session);
+    public int carritoCantidad(Authentication authentication, HttpServletRequest request) {
+        if ("GET".equals(request.getMethod()) && authentication != null
+                && authentication.getPrincipal() instanceof CestaPrincipal principal
+                && request.isUserInRole("CUSTOMER")) {
+            return carritoService.contarUnidades(principal.id());
+        }
+        return 0;
     }
 }

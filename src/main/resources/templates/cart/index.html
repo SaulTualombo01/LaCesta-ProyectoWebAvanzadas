@@ -7,49 +7,32 @@
   <title>Mi carrito · La Cesta</title>
 </head>
 
-<body>
+<body class="cart-view">
 
 <header th:replace="~{fragments/layout :: header('carrito')}"></header>
 
 <main id="contenido"
-      class="container page"
-      th:attr="data-cart-items=${resumen.jsonSincronizacion},data-cart-empty=${resumen.vacio}">
+      class="container page cart-page">
 
-  <div class="page-heading">
+  <div class="page-heading cart-heading">
     <div>
-      <h1>Mi carrito de compras</h1>
-      <p class="intro">
-        Revisa tus productos, ajusta las cantidades y confirma los datos de entrega para tu pedido.
-      </p>
+      <h1>Mi carrito</h1>
+      <p class="intro">Revisa tus productos y completa los datos de entrega.</p>
     </div>
-    <a class="button button-outline" th:href="@{/productos}">
-      Seguir comprando
-    </a>
+    <a class="button button-light" th:href="@{/productos}">Seguir comprando <span aria-hidden="true">↗</span></a>
   </div>
 
   <div id="cart-flash-container">
     <div th:replace="~{fragments/layout :: flash}"></div>
   </div>
 
-  <div id="cart-restore-banner" class="notice notice-success" hidden>
-    Recuperando los productos guardados en tu navegador…
-  </div>
-
-  <form id="cart-sync-form"
-        th:action="@{/carrito/sincronizar}"
-        method="post"
-        hidden>
-    <input type="hidden" id="cart-sync-input" name="itemsJson" value="[]">
-  </form>
-
-  <div class="empty-state cart-empty-state" th:if="${resumen.vacio}">
-    <h3>Tu carrito está vacío</h3>
-    <p>
-      Todavía no has agregado productos. Explora el
-      <a th:href="@{/productos}">catálogo completo</a> o revisa las
-      <a th:href="@{/ofertas}">ofertas especiales</a>.
-    </p>
-  </div>
+  <section class="cart-empty-state" th:if="${resumen.vacio}" aria-labelledby="cart-empty-heading">
+    <div class="cart-empty-copy">
+      <h2 id="cart-empty-heading">Tu carrito está vacío</h2>
+      <a class="button" th:href="@{/ofertas}">Explorar ofertas <span aria-hidden="true">↗</span></a>
+    </div>
+    <img th:src="@{/img/editorial/ofertas-portada.jpg}" alt="" width="1200" height="800" decoding="async">
+  </section>
 
   <div class="cart-layout" th:unless="${resumen.vacio}">
 
@@ -71,7 +54,7 @@
 
         <li class="cart-item"
             th:each="item : ${resumen.items}"
-            th:attr="data-product-id=${item.producto.id}">
+            th:attr="data-product-id=${item.producto.id},data-regular=${item.producto.precio},data-final=${item.producto.precioFinal}">
 
           <a class="cart-item-media"
              th:href="@{/productos/{id}(id=${item.producto.id})}">
@@ -104,18 +87,18 @@
                       th:text="${'$' + item.producto.precioFinal + ' c/u'}">
                 $0.00 c/u
               </strong>
-              <del th:if="${item.tieneOferta}"
+              <del th:hidden="${!item.tieneOferta}"
                    th:text="${'$' + item.producto.precio}">
                 $0.00
               </del>
               <span class="cart-offer-pill"
-                    th:if="${item.tieneOferta}"
+                    th:hidden="${!item.tieneOferta}"
                     th:text="${'Ahorras $' + item.ahorroLinea}">
                 En oferta
               </span>
             </div>
 
-            <p class="stock"
+            <p class="stock" data-cart-stock
                th:text="${item.producto.stock + ' disponibles en tienda'}">
               En stock
             </p>
@@ -190,14 +173,14 @@
       <div id="cart-summary-totals" class="cart-summary-totals">
         <dl class="cart-summary-list">
           <div class="cart-summary-row">
-            <dt th:text="${'Productos (' + resumen.totalUnidades + ')'}">Productos</dt>
-            <dd th:text="${'$' + resumen.subtotalRegular}">$0.00</dd>
+            <dt data-cart-units th:text="${'Productos (' + resumen.totalUnidades + ')'}">Productos</dt>
+            <dd data-cart-regular th:text="${'$' + resumen.subtotalRegular}">$0.00</dd>
           </div>
 
           <div class="cart-summary-row cart-summary-discount"
-               th:if="${resumen.tieneDescuentos}">
+               th:hidden="${!resumen.tieneDescuentos}">
             <dt>Descuento por promociones</dt>
-            <dd th:text="${'-$' + resumen.descuentoPromociones}">-$0.00</dd>
+            <dd data-cart-discount th:text="${'-$' + resumen.descuentoPromociones}">-$0.00</dd>
           </div>
 
           <div class="cart-summary-row">
@@ -207,16 +190,20 @@
 
           <div class="cart-summary-row cart-summary-total">
             <dt>Total a pagar</dt>
-            <dd th:text="${'$' + resumen.totalPagar}">$0.00</dd>
+            <dd data-cart-total th:text="${'$' + resumen.totalPagar}">$0.00</dd>
           </div>
         </dl>
 
         <p class="cart-savings-banner"
-           th:if="${resumen.tieneDescuentos}"
-           th:text="${'¡Estás ahorrando $' + resumen.descuentoPromociones + ' en esta compra!'}">
+           th:hidden="${!resumen.tieneDescuentos}"
+           th:text="${'Estás ahorrando $' + resumen.descuentoPromociones}">
         </p>
       </div>
 
+      <div class="cart-sync">
+        <p class="cart-sync-status" role="status"></p>
+        <button class="button button-outline button-small cart-sync-retry" type="button" hidden>Reintentar</button>
+      </div>
       <hr class="cart-divider">
 
       <form id="cart-checkout-form"
@@ -225,6 +212,7 @@
             th:object="${entrega}"
             method="post"
             novalidate>
+        <input type="hidden" name="intentoCompra" th:value="${intentoCompra}">
 
         <div class="cart-delivery-header">
           <h3>Información de entrega</h3>
@@ -236,7 +224,7 @@
         </div>
 
         <p class="hint">
-          Tus datos quedan guardados para autocompletarse en tu próxima compra.
+          La dirección de tu último pedido se puede usar en la próxima compra.
         </p>
 
         <div class="field">

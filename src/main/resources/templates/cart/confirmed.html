@@ -11,8 +11,7 @@
 <header th:replace="~{fragments/layout :: header('carrito')}"></header>
 
 <main id="contenido"
-      class="container page"
-      data-cart-confirmed="true">
+      class="container page">
 
   <div class="page-heading">
     <div>
@@ -22,7 +21,8 @@
         Verifica el desglose final de tu compra y los datos de entrega registrados.
       </p>
     </div>
-    <form th:action="@{/carrito/pedidos/{id}/restaurar(id=${pedido.id})}" method="post">
+    <form th:if="${!pedido.entregado}"
+          th:action="@{/carrito/pedidos/{id}/restaurar(id=${pedido.id})}" method="post">
       <button type="submit" class="button button-outline">
         Volver a editar el carrito
       </button>
