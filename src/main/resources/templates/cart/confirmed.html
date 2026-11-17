@@ -21,12 +21,12 @@
         Verifica el desglose final de tu compra y los datos de entrega registrados.
       </p>
     </div>
-    <form th:if="${!pedido.entregado}"
-          th:action="@{/carrito/pedidos/{id}/restaurar(id=${pedido.id})}" method="post">
-      <button type="submit" class="button button-outline">
-        Volver a editar el carrito
-      </button>
-    </form>
+    <div class="history-order-badges">
+      <span class="presence is-approved">✓ Compra registrada</span>
+      <a class="button button-light" th:href="@{/pagos/historial}">
+        Mis compras <span aria-hidden="true">↗</span>
+      </a>
+    </div>
   </div>
 
   <div th:replace="~{fragments/layout :: flash}"></div>
@@ -130,6 +130,9 @@
         </p>
         <a class="button cart-checkout-btn" th:href="@{/productos}">
           Volver al catálogo
+        </a>
+        <a class="button button-outline cart-checkout-btn" th:href="@{/pagos/historial}">
+          Ver mi historial de compras
         </a>
       </div>
 

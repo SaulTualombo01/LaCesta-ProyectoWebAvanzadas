@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <th:block th:replace="~{fragments/layout :: head('Interfaz PayPhone')}"></th:block>
+  <link rel="stylesheet" th:href="@{/css/payment.css}">
+</head>
+
+<body class="payphone-page-body cart-view">
+
+<header class="payphone-topbar">
+  <div class="container payphone-topbar-inner">
+    <div class="payphone-topbar-brand">
+      <span class="payphone-dot" aria-hidden="true"></span>
+      <span>PayPhone · Pasarela de Pagos</span>
+    </div>
+    <span class="payphone-topbar-tag">Redirección verificada · La Cesta</span>
+  </div>
+</header>
+
+<main id="contenido" class="container page cart-page">
+
+  <div class="page-heading cart-heading">
+    <div>
+      <p class="product-category" th:text="${'Comercio: ' + pago.comercio}">Comercio</p>
+      <h1>Pago con PayPhone</h1>
+      <p class="intro">
+        Interfaz separada de pasarela de pago lista para la integración comercial con PayPhone.
+      </p>
+    </div>
+    <span class="presence" th:text="${'Ref: ' + pago.referencia}">LC-PED-00001</span>
+  </div>
+
+  <div class="cart-layout">
+
+    <section class="cart-items-section" aria-labelledby="gateway-methods-title">
+      <div class="cart-delivery-summary">
+        <div class="cart-delivery-header">
+          <h2 id="gateway-methods-title">Opciones en PayPhone</h2>
+          <span class="cart-autofill-pill" th:text="${pago.referencia}">LC-PED-00001</span>
+        </div>
+
+        <div class="payphone-method-list">
+          <a class="payphone-method-card is-highlighted"
+             href="https://play.google.com/store/apps/details?id=payPhone_Android.PayPhone_Android&hl=es"
+             target="_blank"
+             rel="noopener noreferrer">
+            <div class="payphone-method-badge">📱 App Móvil</div>
+            <strong>Pagar con tu cuenta PayPhone ↗</strong>
+            <span>Abre o descarga la aplicación oficial de PayPhone en Google Play Store.</span>
+          </a>
+          <div class="payphone-method-card">
+            <div class="payphone-method-badge">💳 Tarjeta</div>
+            <strong>Tarjeta de crédito o débito</strong>
+            <span>Procesamiento Visa / Mastercard a través del botón web de PayPhone.</span>
+          </div>
+        </div>
+
+        <div class="payphone-actions-stack">
+          <form th:action="@{/pagos/payphone/simular}" method="post">
+            <input type="hidden" name="pedidoId" th:if="${pago.pedidoId != null}" th:value="${pago.pedidoId}">
+            <input type="hidden" name="tx" th:value="${tx}">
+            <input type="hidden" name="estado" value="aprobado">
+            <button id="btn-simular-aprobado" type="submit" class="button cart-checkout-btn payphone-btn-main">
+              Autorizar pago (demo)
+            </button>
+          </form>
+
+          <form th:action="@{/pagos/payphone/simular}" method="post">
+            <input type="hidden" name="pedidoId" th:if="${pago.pedidoId != null}" th:value="${pago.pedidoId}">
+            <input type="hidden" name="tx" th:value="${tx}">
+            <input type="hidden" name="estado" value="cancelado">
+            <button id="btn-simular-cancelado" type="submit" class="button button-outline cart-checkout-btn payphone-btn-cancel">
+              Cancelar pago
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <aside class="cart-summary-card" aria-labelledby="gateway-summary-title">
+      <h2 id="gateway-summary-title">Datos enviados</h2>
+
+      <div class="cart-summary-total payphone-amount-card">
+        <dt>Monto total</dt>
+        <dd class="payphone-amount-value" th:text="${'$' + pago.total + ' ' + pago.moneda}">$0.00 USD</dd>
+        <span class="payphone-cents-note" th:text="${'Equivalente PayPhone: ' + pago.montoCentavos + ' centavos'}">
+          0 centavos
+        </span>
+      </div>
+
+      <dl class="cart-delivery-dl">
+        <div>
+          <dt>Referencia</dt>
+          <dd th:text="${pago.referencia}">LC-PED-00001</dd>
+        </div>
+        <div>
+          <dt>Cliente</dt>
+          <dd th:text="${pago.cliente}">Cliente</dd>
+        </div>
+        <div class="cart-delivery-full">
+          <dt>ID de transacción</dt>
+          <dd th:text="${tx}">LC-PED-00001</dd>
+        </div>
+        <div class="cart-delivery-full">
+          <dt>Dirección registrada</dt>
+          <dd th:text="${pago.direccion}">Quito</dd>
+        </div>
+      </dl>
+
+      <div class="payment-secondary-actions">
+        <a class="button button-light cart-checkout-btn"
+           th:href="${pago.pedidoReal} ? @{/pagos/pedido/{id}(id=${pago.pedidoId})} : @{/pagos}">
+          Volver a selección de pago
+        </a>
+        <a class="button button-outline cart-checkout-btn"
+           th:href="${pago.pedidoReal} ? @{/carrito/confirmado/{id}(id=${pago.pedidoId})} : @{/productos}">
+          <span th:text="${pago.pedidoReal ? 'Volver al pedido #' + pago.pedidoId : 'Volver al catálogo'}">
+            Volver
+          </span>
+        </a>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+</body>
+</html>
