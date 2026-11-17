@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <th:block th:replace="~{fragments/layout :: head('Pasarela de pago PayPhone')}"></th:block>
+  <link rel="stylesheet" th:href="@{/css/payment.css}">
+</head>
+
+<body class="cart-view">
+
+<header th:replace="~{fragments/layout :: header('carrito')}"></header>
+
+<main id="contenido" class="container page cart-page">
+
+  <div class="page-heading cart-heading">
+    <div>
+      <p class="product-category" th:text="${pago.pedidoReal ? 'Pedido #' + pago.pedidoId : 'Vista previa de cobro'}">
+        Pago
+      </p>
+      <h1>Pasarela de pago</h1>
+      <p class="intro">
+        Revisa el detalle de tu compra y confirma el cobro mediante PayPhone.
+      </p>
+    </div>
+    <a class="button button-light"
+       th:href="${pago.pedidoReal} ? @{/carrito/confirmado/{id}(id=${pago.pedidoId})} : @{/carrito}">
+      <span th:text="${pago.pedidoReal ? 'Volver al resumen' : 'Volver al carrito'}">Volver al carrito</span>
+      <span aria-hidden="true">↗</span>
+    </a>
+  </div>
+
+  <div th:replace="~{fragments/layout :: flash}"></div>
+
+  <div class="cart-layout">
+
+    <section class="cart-items-section" aria-labelledby="payment-order-title">
+      <div class="cart-section-header">
+        <h2 id="payment-order-title">Detalle de la orden</h2>
+        <span class="presence" th:text="${pago.referencia}">LC-PED-00001</span>
+      </div>
+
+      <ul class="cart-list">
+        <li class="cart-item cart-item-readonly" th:each="item : ${pago.items}">
+          <div class="cart-item-media">
+            <img th:if="${item.imagenRevision != null}"
+                 th:src="@{/productos/{id}/imagen(id=${item.productoId},v=${item.imagenRevision})}"
+                 th:alt="${item.nombre}"
+                 width="110"
+                 height="95"
+                 loading="lazy"
+                 decoding="async">
+            <span class="photo-placeholder"
+                  th:if="${item.imagenRevision == null}">
+              Sin foto
+            </span>
+          </div>
+
+          <div class="cart-item-info">
+            <p class="product-category" th:text="${item.categoriaNombre != null ? item.categoriaNombre : 'Producto'}">
+              Categoría
+            </p>
+            <h3 class="cart-item-title" th:text="${item.nombre}">
+              Producto
+            </h3>
+            <p class="hint" th:text="${item.cantidad + ' × $' + item.precioUnitario}">
+              1 × $0.00
+            </p>
+          </div>
+
+          <div class="cart-item-subtotal">
+            <span class="cart-subtotal-label">Subtotal</span>
+            <strong class="price" th:text="${'$' + item.subtotal}">$0.00</strong>
+          </div>
+        </li>
+      </ul>
+
+      <div class="cart-delivery-summary">
+        <h3>Datos para el comprobante</h3>
+        <dl class="cart-delivery-dl">
+          <div>
+            <dt>Comercio</dt>
+            <dd th:text="${pago.comercio}">La Cesta Minimarket</dd>
+          </div>
+          <div>
+            <dt>Cliente</dt>
+            <dd th:text="${pago.cliente}">Cliente</dd>
+          </div>
+          <div>
+            <dt>Teléfono</dt>
+            <dd th:text="${pago.telefono}">0999999999</dd>
+          </div>
+          <div>
+            <dt>Fecha</dt>
+            <dd th:text="${pago.fechaPedido}">--</dd>
+          </div>
+          <div class="cart-delivery-full">
+            <dt>Dirección de entrega</dt>
+            <dd th:text="${pago.direccion}">Quito</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <aside class="cart-summary-card" aria-labelledby="payphone-box-title">
+      <div class="cart-delivery-header">
+        <h2 id="payphone-box-title">Total de la compra</h2>
+        <span class="cart-autofill-pill"
+              th:classappend="${modoReal} ? ' is-live' : ''"
+              th:text="${modoReal ? 'PayPhone API activo' : 'Modo demostración'}">
+          Modo demostración
+        </span>
+      </div>
+
+      <div class="payphone-brand-banner">
+        <span class="payphone-wordmark">
+          <span class="payphone-dot" aria-hidden="true"></span>
+          PayPhone
+        </span>
+        <span class="payphone-badge" th:text="${pago.moneda}">USD</span>
+      </div>
+
+      <dl class="cart-summary-list">
+        <div class="cart-summary-row">
+          <dt th:text="${'Artículos (' + pago.totalUnidades + ')'}">Artículos</dt>
+          <dd><strong th:text="${'$' + pago.subtotal}">$0.00</strong></dd>
+        </div>
+        <div class="cart-summary-row cart-summary-discount" th:if="${pago.tieneDescuento()}">
+          <dt>Descuento por ofertas</dt>
+          <dd th:text="${'-$' + pago.descuento}">-$0.00</dd>
+        </div>
+        <div class="cart-summary-row">
+          <dt>Entrega a domicilio</dt>
+          <dd class="cart-free-badge">Sin recargo</dd>
+        </div>
+        <div class="cart-summary-row cart-summary-total">
+          <dt>Monto a cobrar</dt>
+          <dd th:text="${'$' + pago.total + ' ' + pago.moneda}">$0.00 USD</dd>
+        </div>
+      </dl>
+
+      <p class="hint" th:if="${modoReal}">
+        Al continuar se invocará el endpoint oficial <code>Prepare</code> de PayPhone para redirigirte con la referencia
+        <strong th:text="${pago.referencia}">LC-PED-00001</strong>.
+      </p>
+      <p class="hint" th:unless="${modoReal}">
+        Al continuar serás redirigido a la interfaz separada de PayPhone (modo demo local) con la referencia
+        <strong th:text="${pago.referencia}">LC-PED-00001</strong>.
+      </p>
+
+      <form th:action="@{/pagos/payphone/iniciar}" method="post">
+        <input type="hidden" name="pedidoId" th:if="${pago.pedidoId != null}" th:value="${pago.pedidoId}">
+        <button id="btn-pagar-payphone" type="submit" class="button cart-checkout-btn payphone-btn-main">
+          Pagar con PayPhone
+        </button>
+      </form>
+
+      <div class="payment-secondary-actions">
+        <a class="button button-outline cart-checkout-btn" th:href="@{/productos}">Seguir comprando</a>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+</body>
+</html>
