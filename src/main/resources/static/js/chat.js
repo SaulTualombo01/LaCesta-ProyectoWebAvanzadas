@@ -63,6 +63,10 @@ function updateCharCount() {
     charCount.classList.toggle("chat-char-limit", length >= 360);
 }
 
+function trimLog() {
+    while (log.children.length > 50) log.firstElementChild.remove();
+}
+
 function appendMessage(message) {
     const nearEnd = log.scrollHeight - log.clientHeight - log.scrollTop < 60;
     const item = document.createElement("li");
@@ -104,6 +108,7 @@ function appendMessage(message) {
     item.append(meta, content);
     for (const current of log.children) {
         const currentId = Number(current.dataset.messageId);
+        if (!Number.isFinite(currentId)) continue;
         if (currentId === message.id) return;
         if (currentId > message.id) {
             log.insertBefore(item, current);
@@ -112,7 +117,37 @@ function appendMessage(message) {
         }
     }
     log.append(item);
-    while (log.children.length > 50) log.firstElementChild.remove();
+    trimLog();
+    applyFilter();
+    if (nearEnd) log.scrollTop = log.scrollHeight;
+}
+
+function appendSystemNotice(text, sentAt) {
+    const nearEnd = log.scrollHeight - log.clientHeight - log.scrollTop < 60;
+    const item = document.createElement("li");
+    item.className = "chat-message chat-system-notice";
+
+    const meta = document.createElement("span");
+    meta.className = "chat-meta";
+
+    const badge = document.createElement("span");
+    badge.className = "chat-badge";
+    badge.textContent = "Aviso de inventario";
+    meta.append(badge);
+
+    if (sentAt) {
+        const time = document.createElement("span");
+        time.textContent = "· " + sentAt;
+        meta.append(time);
+    }
+
+    const body = document.createElement("p");
+    body.className = "chat-body";
+    body.textContent = text;
+
+    item.append(meta, body);
+    log.append(item);
+    trimLog();
     applyFilter();
     if (nearEnd) log.scrollTop = log.scrollHeight;
 }
@@ -274,6 +309,7 @@ function connect() {
                 break;
             case "notice":
                 notice.textContent = event.text;
+                appendSystemNotice(event.text, event.sentAt);
                 break;
             case "error":
                 error.textContent = event.text;
