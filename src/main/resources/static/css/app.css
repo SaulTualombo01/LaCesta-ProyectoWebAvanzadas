@@ -692,6 +692,15 @@ textarea { resize: vertical; }
   background: var(--sage);
 }
 
+.chat-system-notice {
+  align-self: center;
+  max-width: min(100%, 48ch);
+  border-color: #c5d692;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--lime) 45%, var(--surface));
+  text-align: left;
+}
+
 .chat-meta {
   display: flex;
   flex-wrap: wrap;

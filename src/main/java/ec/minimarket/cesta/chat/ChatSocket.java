@@ -7,6 +7,7 @@ import ec.minimarket.cesta.account.AccountSessionsExpired;
 import ec.minimarket.cesta.account.CestaPrincipal;
 import ec.minimarket.cesta.catalog.ProductoAgotado;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -115,7 +116,10 @@ class ChatSocket extends TextWebSocketHandler {
 
     @TransactionalEventListener
     void notifyStock(ProductoAgotado event) {
-        broadcast(frame("notice", "text", "Producto agotado: " + event.nombre() + "."));
+        broadcast(jsonFrame(Map.of(
+                "type", "notice",
+                "text", "Producto agotado: " + event.nombre() + ".",
+                "sentAt", ChatEntry.ECUADOR_TIME.format(Instant.now()))));
     }
 
     private boolean tryHandleTyping(WebSocketSession sender, CestaPrincipal user, boolean admin, String rawPayload) {

@@ -3,6 +3,7 @@ package ec.minimarket.cesta.chat;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ec.minimarket.cesta.account.CestaPrincipal;
+import ec.minimarket.cesta.catalog.ProductoAgotado;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -143,6 +144,11 @@ class ChatTest {
         assertThat(messageFrame.get("author").asText()).isEqualTo("Saúl");
         assertThat(messageFrame.get("role").asText()).isEqualTo("ADMIN");
         assertThat(messageFrame.get("content").asText()).isEqualTo("Sí tenemos stock disponible.");
+
+        chatSocket.notifyStock(new ProductoAgotado(1L, "Café lojano"));
+        JsonNode noticeFrame = lastFrameOfType(anaFrames, "notice");
+        assertThat(noticeFrame.get("text").asText()).contains("Café lojano");
+        assertThat(noticeFrame.get("sentAt").asText()).isNotBlank();
 
         chatSocket.afterConnectionClosed(saulSession, CloseStatus.NORMAL);
         JsonNode updatedPresence = lastFrameOfType(anaFrames, "presence");
