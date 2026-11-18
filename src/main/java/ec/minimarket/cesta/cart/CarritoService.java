@@ -183,7 +183,7 @@ public class CarritoService {
     }
 
     public void guardarDatosEntrega(HttpSession session, DatosEntregaForm entrega) {
-        session.setAttribute(ATRIBUTO_ENTREGA, entrega.normalizado());
+        session.setAttribute(ATRIBUTO_ENTREGA, entrega);
     }
 
     @Transactional
@@ -207,8 +207,7 @@ public class CarritoService {
             return null;
         }
 
-        DatosEntregaForm normalizado = entrega.normalizado();
-        Pedido pedido = new Pedido(usuarioId, intentoCompra, normalizado, resumen, Instant.now());
+        Pedido pedido = new Pedido(usuarioId, intentoCompra, entrega, resumen, Instant.now());
         for (CarritoItem item : resumen.items()) {
             Producto producto = item.producto();
             producto.descontarStock(item.cantidad());

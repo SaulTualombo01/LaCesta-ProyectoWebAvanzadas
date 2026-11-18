@@ -9,6 +9,7 @@ import ec.minimarket.cesta.cart.PedidoRepository;
 import ec.minimarket.cesta.cart.ResumenCarrito;
 import ec.minimarket.cesta.catalog.ProductoAgotado;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Validator;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -20,6 +21,9 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -30,6 +34,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Transactional(readOnly = true)
 public class PaymentService {
 
+    private static final int PEDIDOS_POR_PAGINA = 5;
     private static final String ATRIBUTO_INTENTO = "LA_CESTA_PAYPHONE_INTENTO";
 
     private static final DateTimeFormatter FORMATO_HORA =
@@ -44,6 +49,7 @@ public class PaymentService {
     private final PayPhoneClient payPhoneClient;
     private final ApplicationEventPublisher eventos;
     private final JdbcTemplate jdbc;
+    private final Validator validator;
     private final Map<String, PaymentResult> resultadosRecientes = new ConcurrentHashMap<>();
 
     public PaymentService(
@@ -54,7 +60,8 @@ public class PaymentService {
             PayPhoneGatewayProperties config,
             PayPhoneClient payPhoneClient,
             ApplicationEventPublisher eventos,
-            JdbcTemplate jdbc) {
+            JdbcTemplate jdbc,
+            Validator validator) {
         this.pedidos = pedidos;
         this.carritoService = carritoService;
         this.productRepository = productRepository;
@@ -63,13 +70,23 @@ public class PaymentService {
         this.payPhoneClient = payPhoneClient;
         this.eventos = eventos;
         this.jdbc = jdbc;
+        this.validator = validator;
     }
 
-    public List<Pedido> listarHistorialCompras(UUID usuarioId) {
-        if (usuarioId == null) {
-            return List.of();
+    public Page<Pedido> listarHistorialCompras(UUID usuarioId, int pagina) {
+        var solicitud = PageRequest.of(Math.max(0, pagina), PEDIDOS_POR_PAGINA);
+        if (usuarioId == null || solicitud.getOffset() > Integer.MAX_VALUE) {
+            return Page.empty(solicitud);
         }
-        return orderRepository.findByUsuarioIdOrderByCreadoEnDescIdDesc(usuarioId);
+
+        // Paginamos los pedidos antes de cargar sus detalles para conservar el límite en SQL.
+        Page<Long> ids = orderRepository.buscarIdsDelHistorial(usuarioId, solicitud);
+        if (ids.isEmpty()) {
+            return new PageImpl<>(List.of(), solicitud, ids.getTotalElements());
+        }
+        List<Pedido> compras = orderRepository.findByUsuarioIdAndIdInOrderByCreadoEnDescIdDesc(
+                usuarioId, ids.getContent());
+        return new PageImpl<>(compras, solicitud, ids.getTotalElements());
     }
 
     public boolean isLiveConfigured() {
@@ -399,12 +416,8 @@ public class PaymentService {
         }
     }
 
-    private static boolean tieneEntregaValida(DatosEntregaForm entrega) {
-        if (entrega == null) {
-            return false;
-        }
-        DatosEntregaForm norm = entrega.normalizado();
-        return norm.direccion().length() >= 5 && norm.telefono().matches("^[0-9+()\\-\\s]{7,15}$");
+    private boolean tieneEntregaValida(DatosEntregaForm entrega) {
+        return entrega != null && validator.validate(entrega).isEmpty();
     }
 
     private List<StockDescuento> recopilarDescuentosPedido(Pedido pedido) {

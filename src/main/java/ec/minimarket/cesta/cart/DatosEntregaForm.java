@@ -12,7 +12,7 @@ public record DatosEntregaForm(
 
         @NotBlank(message = "Ingresa un número de teléfono de contacto.")
         @Pattern(
-                regexp = "^[0-9+()\\-\\s]{7,15}$",
+                regexp = "^(?=(?:[^0-9]*[0-9]){7})[0-9+()\\- ]{7,15}$",
                 message = "Ingresa un teléfono válido (7 a 15 dígitos)."
         )
         String telefono,
@@ -25,11 +25,9 @@ public record DatosEntregaForm(
         return new DatosEntregaForm("", "", "");
     }
 
-    public DatosEntregaForm normalizado() {
-        return new DatosEntregaForm(
-                direccion == null ? "" : direccion.strip(),
-                telefono == null ? "" : telefono.strip(),
-                referencia == null ? "" : referencia.strip()
-        );
+    public DatosEntregaForm {
+        direccion = direccion == null ? "" : direccion.strip();
+        telefono = telefono == null ? "" : telefono.strip();
+        referencia = referencia == null ? "" : referencia.strip();
     }
 }

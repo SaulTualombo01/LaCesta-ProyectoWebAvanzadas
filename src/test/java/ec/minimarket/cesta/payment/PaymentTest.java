@@ -8,9 +8,12 @@ import ec.minimarket.cesta.cart.Pedido;
 import ec.minimarket.cesta.cart.PedidoRepository;
 import ec.minimarket.cesta.catalog.Producto;
 import ec.minimarket.cesta.catalog.ProductoRepository;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.UUID;
+import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -21,6 +24,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.http.client.MockClientHttpResponse;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.test.context.ActiveProfiles;
@@ -36,6 +40,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -468,8 +473,16 @@ class PaymentTest {
 
     private Pedido crearPedidoDePrueba(UUID usuarioId, String nombreProducto, String precio, int cantidad)
             throws Exception {
+        return crearPedidoDePrueba(usuarioId, nombreProducto, precio, cantidad, null);
+    }
 
-        String redirect = mvc.perform(post("/productos")
+    private Pedido crearPedidoDePrueba(UUID usuarioId, String nombreProducto, String precio, int cantidad,
+                                      MockMultipartFile imagen) throws Exception {
+        var formulario = multipart("/productos");
+        if (imagen != null) {
+            formulario.file(imagen);
+        }
+        String redirect = mvc.perform(formulario
                         .with(user("admin").roles("ADMIN"))
                         .with(csrf())
                         .param("nombre", nombreProducto)
@@ -496,7 +509,11 @@ class PaymentTest {
     void muestraHistorialDeComprasConPedidosDelUsuario() throws Exception {
         UUID clienteId = UUID.randomUUID();
         var cliente = clienteAuth(clienteId, "Sofía Historial");
-        Pedido pedido = crearPedidoDePrueba(clienteId, "Queso Fresco", "4.00", 2);
+        var bytes = new ByteArrayOutputStream();
+        ImageIO.write(new BufferedImage(300, 250, BufferedImage.TYPE_INT_RGB), "png", bytes);
+        var foto = new MockMultipartFile("imagen", "queso.png", "image/png", bytes.toByteArray());
+        Pedido pedido = crearPedidoDePrueba(clienteId, "Queso Fresco", "4.00", 2, foto);
+        var producto = pedido.getDetalles().get(0).getProducto();
 
         mvc.perform(get("/pagos/historial").with(authentication(cliente)))
                 .andExpect(status().isOk())
@@ -504,6 +521,8 @@ class PaymentTest {
                 .andExpect(content().string(allOf(
                         containsString("Historial de compras"),
                         containsString("Queso Fresco"),
+                        containsString("/productos/" + producto.getId() + "/imagen?v=" + producto.getImagenRevision()),
+                        containsString("loading=\"lazy\""),
                         containsString("$8.00 USD"),
                         containsString("Pagado con PayPhone")
                 )));
@@ -511,6 +530,53 @@ class PaymentTest {
         mvc.perform(get("/historial").with(authentication(cliente)))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/pagos/historial"));
+    }
+
+    @Test
+    void paginaMisComprasYConservaElAccesoDesdeElInicio() throws Exception {
+        UUID clienteId = UUID.randomUUID();
+        var cliente = clienteAuth(clienteId, "Cliente del historial");
+        for (int numero = 1; numero <= 6; numero++) {
+            crearPedidoDePrueba(clienteId, "Compra propia " + numero, "1.00", 1);
+        }
+        crearPedidoDePrueba(UUID.randomUUID(), "Compra de otra cuenta", "1.00", 1);
+
+        mvc.perform(get("/").with(authentication(cliente)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/pagos/historial\">Mis compras</a>")));
+        mvc.perform(get("/pagos/historial").with(authentication(cliente)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(allOf(
+                        containsString("Página 1 de 2"),
+                        containsString("Compra propia 6"),
+                        containsString("Compra propia 2"),
+                        containsString("/pagos/historial?page=1"),
+                        not(containsString("Compra propia 1")),
+                        not(containsString("Compra de otra cuenta")))));
+        mvc.perform(get("/pagos/historial").param("page", "1").with(authentication(cliente)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(allOf(
+                        containsString("Página 2 de 2"),
+                        containsString("Compra propia 1"),
+                        containsString("/pagos/historial?page=0"),
+                        not(containsString("Siguiente")),
+                        not(containsString("Compra propia 2")),
+                        not(containsString("Compra de otra cuenta")))));
+        mvc.perform(get("/pagos/historial").param("page", "2").with(authentication(cliente)))
+                .andExpect(redirectedUrl("/pagos/historial"));
+        mvc.perform(get("/mis-compras").param("page", "1").with(authentication(cliente)))
+                .andExpect(redirectedUrl("/pagos/historial?page=1"));
+    }
+
+    @Test
+    void limitaLosCamposDelFormularioDeSimulacion() throws Exception {
+        var cliente = clienteAuth(UUID.randomUUID(), "Cliente");
+        mvc.perform(post("/pagos/payphone/simular").with(authentication(cliente)).with(csrf())
+                        .param("estado", "desconocido"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/pagos/payphone/simular").with(authentication(cliente)).with(csrf())
+                        .param("tx", "x".repeat(257)))
+                .andExpect(status().isBadRequest());
     }
 
     private UsernamePasswordAuthenticationToken clienteAuth(UUID id, String displayName) {

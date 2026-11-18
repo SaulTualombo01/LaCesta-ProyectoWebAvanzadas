@@ -27,7 +27,7 @@ class SecurityConfig {
                                 "/css/**", "/js/**", "/img/**", "/fonts/**", "/favicon.ico").permitAll()
                         .requestMatchers("/admin", "/admin/**").hasRole("ADMIN")
                         .requestMatchers("/entregas", "/entregas/**").hasRole("DELIVERY")
-                        .requestMatchers("/chat", "/chat/**").hasAnyRole("ADMIN", "CUSTOMER")
+                        .requestMatchers("/chat", "/chat/**", "/ws/chat").hasAnyRole("ADMIN", "CUSTOMER")
                         .requestMatchers("/productos/nuevo", "/productos/*/editar").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/productos/**").hasRole("ADMIN")
                         .anyRequest().authenticated())

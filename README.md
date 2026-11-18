@@ -23,6 +23,29 @@ El [análisis de requerimientos](docs/REQUERIMIENTOS.md) incluye los objetivos, 
 3. En **Authentication → URL Configuration**, añade las dos URL de retorno exactas. Para probar desde IntelliJ son `https://localhost:8080/confirmar` y `https://localhost:8080/restablecer`. Para desplegar, añade las rutas equivalentes bajo el dominio HTTPS de `APP_PUBLIC_URL`. Conserva las plantillas de correo con `{{ .ConfirmationURL }}` para confirmación y recuperación. El usuario debe abrir el enlace en el mismo navegador en que lo solicitó. [Flujo PKCE](https://supabase.com/docs/guides/auth/sessions/pkce-flow)
 4. En **Authentication → Sign In / Providers**, habilita correo y contraseña y mantén activa la confirmación de correo. Configura SMTP propio para enviar correos a clientes ajenos al equipo. [Contraseñas en Supabase Auth](https://supabase.com/docs/guides/auth/passwords) · [SMTP personalizado](https://supabase.com/docs/guides/auth/auth-smtp)
 
+### Enviar correos de autenticación con Gmail
+
+Supabase Auth se conecta a Gmail por SMTP para enviar los enlaces de recuperación y confirmación.
+
+1. Usa la cuenta de Google que será el remitente de La Cesta. Activa la verificación en dos pasos y crea una contraseña de aplicación con el nombre «La Cesta SMTP». [Contraseñas de aplicación de Google](https://support.google.com/accounts/answer/185833?hl=es)
+2. En Supabase, abre **Authentication → SMTP Settings** y activa **Enable custom SMTP**. [Ajustes de SMTP](https://supabase.com/dashboard/project/_/auth/smtp)
+3. Completa estos campos y guarda los cambios.
+
+   | Campo | Valor |
+   | --- | --- |
+   | Sender email address | El correo completo de la cuenta de Google |
+   | Sender name | La Cesta |
+   | Host | smtp.gmail.com |
+   | Port | 587 (STARTTLS) |
+   | Username | El mismo correo completo de Google |
+   | Password | La contraseña de aplicación de Google |
+
+   Introduce el secreto directamente en Supabase y mantenlo fuera del repositorio. [Servidor SMTP de Gmail](https://support.google.com/mail/answer/7104828)
+
+4. En **Authentication → URL Configuration**, confirma que esté permitida la URL de retorno de La Cesta (en local, https://localhost:8080/restablecer). Solicita un enlace desde **¿La olvidaste?**. Ábrelo en el mismo navegador y perfil, guarda una contraseña nueva e inicia sesión con ella.
+
+Al guardar la nueva contraseña, La Cesta verifica el código de recuperación y llama a Supabase Auth. Supabase actualiza el hash de la contraseña en la misma cuenta de Authentication → Users. El UUID del usuario se conserva y el permiso de administrador sigue dependiendo de APP_ADMIN_USER_ID. Gmail se encarga del correo. [Recuperación de contraseñas en Supabase](https://supabase.com/docs/guides/auth/passwords)
+
 ## Ejecutar en IntelliJ IDEA
 
 1. Abre la carpeta como proyecto Maven y selecciona un JDK 17 a 25. Detén la ejecución anterior antes de cambiar de configuración.
