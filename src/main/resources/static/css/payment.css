@@ -1,0 +1,342 @@
+/* Estilos específicos para la Pasarela de Pago PayPhone en La Cesta
+   Alineados con el sistema de diseño visual de /carrito (editorial, tarjetas suaves y tipografía enriquecida) */
+
+/* Botones en la cabecera verde de la página (.cart-heading) */
+.cart-heading .button,
+.cart-heading .button-light,
+.cart-heading .button-outline {
+  background: var(--lime, #dcebae) !important;
+  color: #183b34 !important;
+  border: 1px solid #c8db94 !important;
+  font-weight: 750 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18) !important;
+  text-decoration: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.cart-heading .button:hover,
+.cart-heading .button-light:hover,
+.cart-heading .button-outline:hover {
+  background: #f0f7d5 !important;
+  border-color: #ffffff !important;
+  transform: translateY(-1px);
+}
+
+.cart-heading .product-category {
+  color: #dcebae !important;
+  font-weight: 700;
+}
+
+.cart-view .payphone-brand-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.15rem;
+  border-radius: 0.85rem;
+  background: #ffffff;
+  border: 1px solid #bac4a5;
+  box-shadow: 0 1px 3px rgba(24, 59, 52, 0.04);
+}
+
+.payphone-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--editorial-font, "Barlow Condensed", "Arial Narrow", sans-serif);
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: #183b34;
+  letter-spacing: 0.02em;
+}
+
+.payphone-dot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 999px;
+  background: #ff6a00;
+  display: inline-block;
+  box-shadow: 0 0 0 3px rgba(255, 106, 0, 0.18);
+}
+
+.payphone-badge {
+  font-size: 0.78rem;
+  font-weight: 750;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: #183b34;
+  color: #f2edb7;
+}
+
+.payphone-btn-main {
+  background: #183b34 !important;
+  color: #fffef5 !important;
+  border: 1px solid #183b34 !important;
+  box-shadow: 0 4px 14px rgba(24, 59, 52, 0.18);
+  transition: background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.payphone-btn-main:hover {
+  background: #235249 !important;
+  border-color: #235249 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(24, 59, 52, 0.24);
+}
+
+.payphone-btn-cancel {
+  border-color: #fca5a5 !important;
+  background: #fff5f5 !important;
+  color: #991b1b !important;
+}
+
+.payphone-btn-cancel:hover {
+  background: #fee2de !important;
+  border-color: #ef4444 !important;
+}
+
+/* Interfaz separada de la pasarela PayPhone */
+.payphone-page-body {
+  background: var(--paper, #fbf8f2);
+  min-height: 100vh;
+}
+
+.payphone-topbar {
+  background: #183b34;
+  color: #fffef5;
+  border-bottom: 3px solid #ff6a00;
+}
+
+.payphone-topbar-inner {
+  min-height: 4.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem 1.5rem;
+}
+
+.payphone-topbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 750;
+  font-size: 1.15rem;
+}
+
+.payphone-topbar-tag {
+  font-size: 0.82rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 106, 0, 0.2);
+  color: #ffd4b8;
+  border: 1px solid rgba(255, 106, 0, 0.45);
+  font-weight: 650;
+}
+
+.payphone-method-list {
+  display: grid;
+  gap: 0.85rem;
+  margin: 1rem 0 1.25rem;
+}
+
+.payphone-method-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.05rem 1.25rem;
+  border: 1px solid #bac4a5;
+  border-radius: 0.85rem;
+  background: #ffffff;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.payphone-method-card strong {
+  color: #183b34;
+  font-size: 1.05rem;
+}
+
+.payphone-method-card span {
+  font-size: 0.88rem;
+  color: #4b5d4e;
+}
+
+.payphone-method-card:hover {
+  transform: translateY(-2px);
+  border-color: #183b34;
+  box-shadow: 0 6px 18px rgba(24, 59, 52, 0.08);
+}
+
+.payphone-method-card.is-highlighted {
+  border: 2px solid #84955f;
+  background: #fafcf4;
+  box-shadow: 0 2px 8px rgba(132, 149, 95, 0.12);
+}
+
+.payphone-method-badge {
+  font-size: 0.74rem;
+  font-weight: 750;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: #edf0e2;
+  color: #183b34;
+  width: fit-content;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.payphone-actions-stack {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.payphone-amount-card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem 1.15rem;
+  border-radius: 0.85rem;
+  background: #183b34;
+  color: #fffef5;
+}
+
+.payphone-amount-card dt {
+  color: #dcebae;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
+.payphone-amount-value {
+  font-family: var(--editorial-font, "Barlow Condensed", "Arial Narrow", sans-serif);
+  font-size: clamp(1.8rem, 3.2vw, 2.3rem);
+  font-weight: 800;
+  line-height: 1.1;
+  color: #f2edb7 !important;
+  margin: 0;
+}
+
+.payphone-cents-note {
+  font-size: 0.82rem;
+  color: #dcebae;
+  font-weight: 600;
+}
+
+.presence.is-approved {
+  background: #e2edd3;
+  color: #183b34;
+  border: 1px solid #a5b67a;
+}
+
+.presence.is-cancelled {
+  background: #fee2de;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.payment-secondary-actions {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+}
+
+.payment-secondary-actions .cart-checkout-btn,
+.payment-secondary-actions .button {
+  width: 100%;
+  text-align: center;
+  justify-content: center;
+}
+
+/* Historial de compras */
+.history-pagination {
+  flex-wrap: wrap;
+  color: var(--green);
+  font-weight: 700;
+}
+
+.history-pagination .button { min-height: 2.75rem; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .history-page-arrow { transition: transform 160ms ease-out; }
+  .history-pagination a[rel="prev"]:is(:hover, :focus-visible) .history-page-arrow { transform: translateX(-3px); }
+  .history-pagination a[rel="next"]:is(:hover, :focus-visible) .history-page-arrow { transform: translateX(3px); }
+}
+
+.history-orders-list {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.history-order-card {
+  background: #ffffff;
+  border: 1px solid #bac4a5;
+  border-radius: 1.25rem;
+  padding: clamp(1.2rem, 2.5vw, 1.75rem);
+  display: grid;
+  gap: 1.25rem;
+  box-shadow: 0 4px 18px rgba(24, 59, 52, 0.05);
+}
+
+.history-card-header {
+  border-bottom: 1px solid #e1e7d2;
+  padding-bottom: 0.85rem;
+}
+
+.history-card-header h2 {
+  font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+  margin: 0.2rem 0;
+  color: #183b34;
+}
+
+.history-order-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.history-order-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e1e7d2;
+}
+
+.history-order-delivery p {
+  margin: 0;
+  color: #4b5d4e;
+  font-size: 0.92rem;
+}
+
+.history-order-delivery strong {
+  color: #183b34;
+}
+
+.history-order-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.history-total-chip {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 1.15rem;
+  color: #183b34;
+}
+
+.history-total-chip strong {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #183b34;
+}

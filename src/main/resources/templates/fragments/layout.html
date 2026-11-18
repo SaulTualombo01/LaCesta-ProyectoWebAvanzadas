@@ -30,6 +30,8 @@
         <a sec:authorize="!hasRole('ADMIN') and !hasRole('DELIVERY')" th:href="@{/productos}" th:aria-current="${actual == 'productos'} ? 'page' : null">Catálogo</a>
         <a sec:authorize="!hasRole('ADMIN') and !hasRole('DELIVERY')" th:href="@{/ofertas}"
            th:aria-current="${actual == 'ofertas'} ? 'page' : null">Ofertas</a>
+        <a sec:authorize="!hasRole('ADMIN') and !hasRole('DELIVERY')" th:href="@{/pagos/historial}"
+           th:aria-current="${actual == 'historial'} ? 'page' : null">Mis compras</a>
         <a sec:authorize="!hasRole('DELIVERY')" th:href="@{/chat}" th:aria-current="${actual == 'chat'} ? 'page' : null">Sala general</a>
         <a sec:authorize="!hasRole('ADMIN') and !hasRole('DELIVERY')" th:href="@{/carrito}"
            th:aria-current="${actual == 'carrito'} ? 'page' : null"

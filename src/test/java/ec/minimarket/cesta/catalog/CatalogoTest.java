@@ -1,7 +1,11 @@
 package ec.minimarket.cesta.catalog;
 
+import ec.minimarket.cesta.account.CestaPrincipal;
+import ec.minimarket.cesta.cart.CarritoService;
+import ec.minimarket.cesta.category.CategoriaRepository;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -16,6 +20,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,12 +32,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -54,6 +65,37 @@ class CatalogoTest {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Autowired
+    private CategoriaRepository categorias;
+
+    @MockitoSpyBean
+    private CarritoService carrito;
+
+    @Test
+    void validaElFormularioDeCategoriasEnServidorYConservaTextoLegitimo() throws Exception {
+        var admin = user("admin").roles("ADMIN");
+        mvc.perform(post("/admin/categorias/crear").with(admin).with(csrf()).param("codigo", "PRUEBA"))
+                .andExpect(redirectedUrl("/admin/categorias/nueva"));
+        mvc.perform(post("/admin/categorias/crear").with(admin).with(csrf())
+                        .param("codigo", "PRUEBA").param("nombre", "Cuidado")
+                        .param("descripcion", "x".repeat(256)))
+                .andExpect(redirectedUrl("/admin/categorias/nueva"));
+        assertThat(categorias.findByCodigo("PRUEBA")).isEmpty();
+
+        mvc.perform(post("/admin/categorias/crear").with(admin).with(csrf())
+                        .param("codigo", "PRUEBA").param("nombre", "Cuidado d'Oliva")
+                        .param("descripcion", "Jabón de La Cesta."))
+                .andExpect(redirectedUrl("/admin/categorias"));
+        var guardada = categorias.findByCodigo("PRUEBA").orElseThrow();
+        assertThat(guardada.getNombre()).isEqualTo("Cuidado d'Oliva");
+        mvc.perform(post("/admin/categorias/{id}/actualizar", guardada.getId()).with(admin).with(csrf())
+                        .param("nombre", "Cuidado").param("descripcion", "x".repeat(256)))
+                .andExpect(redirectedUrl("/admin/categorias/" + guardada.getId() + "/editar"));
+        assertThat(guardada.getNombre()).isEqualTo("Cuidado d'Oliva");
+        mvc.perform(get("/productos").with(admin).param("categoria", "Código incorrecto"))
+                .andExpect(status().isBadRequest());
+    }
 
     @Test
     void rechazaUnaPromocionIgualAlPrecioYStockNegativo() throws Exception {
@@ -251,7 +293,10 @@ class CatalogoTest {
     @Test
     void guardaReemplazaYQuitaLaFotoDesdeElCrud() throws Exception {
 
-        var cliente = user("cliente").roles("CUSTOMER");
+        UUID clienteId = UUID.randomUUID();
+        var principal = new CestaPrincipal(clienteId, "Cliente");
+        var cliente = authentication(UsernamePasswordAuthenticationToken.authenticated(
+                principal, null, AuthorityUtils.createAuthorityList("ROLE_CUSTOMER")));
         var administrador = user("admin").roles("ADMIN");
 
         String ruta = mvc.perform(multipart("/productos")
@@ -285,9 +330,14 @@ class CatalogoTest {
                         get(ruta + "/imagen").with(cliente))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("image/jpeg"))
+                .andExpect(header().string("Cache-Control", "no-store"))
                 .andReturn()
                 .getResponse()
                 .getContentAsByteArray();
+
+        verify(carrito, never()).contarUnidades(clienteId);
+        mvc.perform(get(ruta).with(cliente)).andExpect(status().isOk());
+        verify(carrito).contarUnidades(clienteId);
 
         var imagen = ImageIO.read(
                 new ByteArrayInputStream(publicada));

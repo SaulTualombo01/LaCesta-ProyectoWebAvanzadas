@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <th:block th:replace="~{fragments/layout :: head('Resultado de pago PayPhone')}"></th:block>
+  <link rel="stylesheet" th:href="@{/css/payment.css}">
+</head>
+
+<body class="cart-view">
+
+<header th:replace="~{fragments/layout :: header('carrito')}"></header>
+
+<main id="contenido"
+      class="container page cart-page"
+      th:attr="data-cart-confirmed=${resultado.aprobado}">
+
+  <div class="page-heading cart-heading">
+    <div>
+      <p class="product-category" th:text="${'Comprobante #' + (resultado.pedidoId != null ? resultado.pedidoId : resultado.referencia)}">
+        Comprobante PayPhone
+      </p>
+      <h1 id="payment-result-title"
+          th:text="${resultado.aprobado ? 'Pago autorizado' : 'Pago no completado'}">
+        Resultado
+      </h1>
+      <p class="intro" th:text="${resultado.mensaje}">Mensaje de estado</p>
+    </div>
+    <span class="presence"
+          th:classappend="${resultado.aprobado} ? ' is-approved' : ' is-cancelled'"
+          th:text="${resultado.estado}">
+      ESTADO
+    </span>
+  </div>
+
+  <div class="cart-layout">
+
+    <section class="cart-items-section" aria-labelledby="result-details-title">
+      <div class="cart-delivery-summary">
+        <h3 id="result-details-title">Detalle de la transacción PayPhone</h3>
+        <dl class="cart-delivery-dl">
+          <div>
+            <dt>Referencia de orden</dt>
+            <dd th:text="${resultado.referencia}">LC-PED-00001</dd>
+          </div>
+          <div>
+            <dt>Monto procesado</dt>
+            <dd th:text="${'$' + resultado.monto + ' ' + resultado.moneda}">$0.00 USD</dd>
+          </div>
+          <div>
+            <dt>Código de autorización</dt>
+            <dd th:text="${resultado.codigoAutorizacion}">—</dd>
+          </div>
+          <div>
+            <dt>ID PayPhone</dt>
+            <dd th:text="${resultado.transaccionId}">—</dd>
+          </div>
+          <div>
+            <dt>Fecha y hora</dt>
+            <dd th:text="${resultado.fechaHora}">—</dd>
+          </div>
+          <div>
+            <dt>Modalidad</dt>
+            <dd th:text="${resultado.modoReal ? 'PayPhone API' : 'Simulación local'}">Simulación local</dd>
+          </div>
+          <div class="cart-delivery-full">
+            <dt>Identificador cliente (clientTxId)</dt>
+            <dd th:text="${resultado.clientTransactionId}">LC-PED-00001</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <aside class="cart-summary-card" aria-labelledby="result-summary-title">
+      <h2 id="result-summary-title">Resumen de cobro</h2>
+
+      <div class="cart-summary-totals">
+        <dl class="cart-summary-list">
+          <div class="cart-summary-row">
+            <dt>Estado de la transacción</dt>
+            <dd><strong th:text="${resultado.estado}">APROBADO</strong></dd>
+          </div>
+          <div class="cart-summary-row cart-summary-total">
+            <dt>Total pagado</dt>
+            <dd th:text="${'$' + resultado.monto + ' ' + resultado.moneda}">$0.00 USD</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="payment-secondary-actions">
+        <a id="btn-reintentar-payphone"
+           class="button cart-checkout-btn payphone-btn-main"
+           th:if="${!resultado.aprobado}"
+           th:href="${resultado.pedidoId != null} ? @{/pagos/pedido/{id}(id=${resultado.pedidoId})} : @{/pagos}">
+          Reintentar con PayPhone
+        </a>
+        <a class="button cart-checkout-btn"
+           th:if="${resultado.pedidoId != null}"
+           th:href="@{/carrito/confirmado/{id}(id=${resultado.pedidoId})}">
+          <span th:text="${'Ver resumen del pedido #' + resultado.pedidoId}">Ver pedido</span>
+        </a>
+        <a class="button button-light cart-checkout-btn" th:href="@{/pagos/historial}">
+          Ver mi historial de compras <span aria-hidden="true">↗</span>
+        </a>
+        <a class="button button-outline cart-checkout-btn" th:href="@{/productos}">
+          Volver al catálogo
+        </a>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+
+</body>
+</html>

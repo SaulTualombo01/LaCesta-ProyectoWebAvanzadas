@@ -3,7 +3,9 @@ package ec.minimarket.cesta.account;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -117,6 +119,29 @@ class SupabaseAuthClientTest {
         });
         new SupabaseAuth(builder, PROJECT, API_KEY).recover("cliente@example.test", "challenge-de-prueba",
                 "http://localhost:8080/restablecer");
+    }
+
+    @Test
+    void actualizaLaContrasenaEnSupabaseAuthConElTokenDeRecuperacion() {
+        var json = new ObjectMapper();
+        var llamadas = new ArrayList<HttpMethod>();
+        var builder = RestClient.builder().requestInterceptor((request, body, execution) -> {
+            llamadas.add(request.getMethod());
+            assertThat(request.getURI()).isEqualTo(PROJECT.resolve("/auth/v1/user"));
+            assertThat(request.getMethod()).isEqualTo(HttpMethod.PUT);
+            assertThat(request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION)).isEqualTo("Bearer " + TOKEN);
+            assertThat(request.getHeaders().getFirst("apikey")).isEqualTo(API_KEY);
+            var payload = json.readTree(body);
+            assertThat(payload.size()).isEqualTo(1);
+            assertThat(payload.path("password").asText()).isEqualTo("NuevaClaveDePrueba321");
+            return response("{\"id\":\"" + USER_ID + "\"}");
+        });
+
+        var auth = new SupabaseAuth(builder, PROJECT, API_KEY);
+        var session = new SupabaseAuth.AuthSession(TOKEN,
+                new SupabaseAuth.Identity(USER_ID, "cliente@example.test", Instant.EPOCH, false, Map.of()));
+        auth.updatePassword(session, "NuevaClaveDePrueba321");
+        assertThat(llamadas).containsExactly(HttpMethod.PUT);
     }
 
     private static MockClientHttpResponse response(String json) {

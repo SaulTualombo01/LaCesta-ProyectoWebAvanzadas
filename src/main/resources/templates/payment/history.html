@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <th:block th:replace="~{fragments/layout :: head('Historial de compras')}"></th:block>
+  <link rel="stylesheet" th:href="@{/css/payment.css}">
+</head>
+
+<body class="cart-view">
+
+<header th:replace="~{fragments/layout :: header('historial')}"></header>
+
+<main id="contenido" class="container page cart-page">
+
+  <div class="page-heading cart-heading">
+    <div>
+      <p class="product-category">Mis compras procesadas</p>
+      <h1>Historial de compras</h1>
+      <p class="intro">
+        Revisa todos tus pedidos procesados con la pasarela PayPhone y corrobora el pago registrado.
+      </p>
+    </div>
+    <a class="button button-light" th:href="@{/productos}">
+      Seguir comprando <span aria-hidden="true">↗</span>
+    </a>
+  </div>
+
+  <div th:replace="~{fragments/layout :: flash}"></div>
+
+  <section class="cart-empty-state" th:if="${pagina.isEmpty()}">
+    <div class="cart-empty-copy">
+      <h2>Aún no tienes compras procesadas</h2>
+      <p class="hint">Cuando autorices pagos con PayPhone, podrás corroborar aquí el detalle de cada compra.</p>
+      <a class="button" th:href="@{/productos}">Explorar catálogo <span aria-hidden="true">↗</span></a>
+    </div>
+    <img th:src="@{/img/editorial/ofertas-portada.jpg}" alt="" width="1200" height="800" decoding="async">
+  </section>
+
+  <div class="history-orders-list" th:unless="${pagina.isEmpty()}">
+
+    <article class="history-order-card" th:each="pedido : ${pagina.content}">
+      <div class="cart-section-header history-card-header">
+        <div>
+          <span class="product-category" th:text="${'Pedido #' + pedido.id}">Pedido #1</span>
+          <h2 th:text="${'LC-PED-' + #numbers.formatInteger(pedido.id, 5)}">LC-PED-00001</h2>
+          <span class="hint" th:text="${pedido.fechaFormateada}">Fecha</span>
+        </div>
+        <div class="history-order-badges">
+          <span class="presence is-approved">✓ Pagado con PayPhone</span>
+          <span class="cart-autofill-pill" th:text="${pedido.entregado ? 'Entregado' : 'En preparación'}">
+            En preparación
+          </span>
+        </div>
+      </div>
+
+      <ul class="cart-list">
+        <li class="cart-item cart-item-readonly" th:each="det : ${pedido.detalles}">
+          <div class="cart-item-media">
+            <img th:if="${det.producto.imagenRevision != null}"
+                 th:src="@{/productos/{id}/imagen(id=${det.producto.id},v=${det.producto.imagenRevision})}"
+                 th:alt="${det.producto.nombre}"
+                 width="110"
+                 height="95"
+                 loading="lazy"
+                 decoding="async">
+            <span class="photo-placeholder"
+                  th:if="${det.producto.imagenRevision == null}">
+              Sin foto
+            </span>
+          </div>
+
+          <div class="cart-item-info">
+            <p class="product-category"
+               th:text="${det.producto.categoria != null ? det.producto.categoria.nombre : 'Producto'}">
+              Categoría
+            </p>
+            <h3 class="cart-item-title" th:text="${det.producto.nombre}">
+              Producto
+            </h3>
+            <p class="hint" th:text="${det.cantidad + ' × $' + det.precioUnitario}">
+              1 × $0.00
+            </p>
+          </div>
+
+          <div class="cart-item-subtotal">
+            <span class="cart-subtotal-label">Subtotal</span>
+            <strong class="price" th:text="${'$' + det.subtotal}">$0.00</strong>
+          </div>
+        </li>
+      </ul>
+
+      <div class="history-order-footer">
+        <div class="history-order-delivery">
+          <p>
+            <strong>Entrega a:</strong>
+            <span th:text="${pedido.direccionEntrega}">Dirección</span> ·
+            Teléfono: <span th:text="${pedido.telefonoContacto}">0990000000</span>
+          </p>
+        </div>
+        <div class="history-order-actions">
+          <div class="history-total-chip">
+            <span>Total pagado:</span>
+            <strong class="price" th:text="${'$' + pedido.total + ' USD'}">$0.00 USD</strong>
+          </div>
+          <a class="button button-outline" th:href="@{/carrito/confirmado/{id}(id=${pedido.id})}">
+            Ver comprobante
+          </a>
+        </div>
+      </div>
+    </article>
+
+  </div>
+
+  <nav class="pagination history-pagination"
+       aria-label="Páginas de mis compras"
+       th:if="${pagina.totalPages > 1}">
+    <a class="button button-outline button-small"
+       rel="prev"
+       th:if="${pagina.hasPrevious()}"
+       th:href="@{/pagos/historial(page=${pagina.number - 1})}">
+      <span class="history-page-arrow" aria-hidden="true">←</span> Anterior
+    </a>
+    <span aria-current="page" th:text="|Página ${pagina.number + 1} de ${pagina.totalPages}|"></span>
+    <a class="button button-outline button-small"
+       rel="next"
+       th:if="${pagina.hasNext()}"
+       th:href="@{/pagos/historial(page=${pagina.number + 1})}">
+      Siguiente <span class="history-page-arrow" aria-hidden="true">→</span>
+    </a>
+  </nav>
+
+</main>
+
+</body>
+</html>
