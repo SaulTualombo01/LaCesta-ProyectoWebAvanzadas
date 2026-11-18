@@ -284,10 +284,10 @@ Completa la tabla con los nombres o alias autorizados y los roles de cada integr
 
 | Integrante | Rol propuesto | Responsabilidad |
 | --- | --- | --- |
-| Por completar | Análisis y coordinación | Requerimientos, alcance y defensa |
-| Por completar | Cuentas y seguridad | Supabase Auth, sesiones y recuperación |
-| Por completar | Catálogo e interfaz | Categorías, inventario, promociones y fotos |
-| Por completar | Tiempo real y calidad | Chat WSS, pruebas y verificación del despliegue |
+| Priscila Pazmiño | Análisis y coordinación | Requerimientos, alcance y defensa |
+| Saul Tualombo | Cuentas y seguridad | Supabase Auth, sesiones y recuperación |
+| Julián Narvaez y Jonathan Claudio | Catálogo e interfaz | Categorías, inventario, promociones y fotos |
+| Jimmy Arias | Tiempo real y calidad | Chat WSS, pruebas y verificación del despliegue |
 
 ### Uso de IA
 
