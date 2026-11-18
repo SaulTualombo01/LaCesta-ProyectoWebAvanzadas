@@ -1,68 +1,74 @@
-# La Cesta
+<p align="center">
+  <img src="src/main/resources/static/img/cesta-icon.png" width="76" alt="">
+</p>
 
-La Cesta es un minimarket ficticio de Quito. Su personal necesita mantener en un solo lugar los precios, las promociones y las existencias que consultan sus clientes. El catálogo resuelve esa consulta y la sala general permite comentar productos y preguntar al personal.
+<h1 align="center">La Cesta</h1>
 
-Aplicaciones Web Avanzadas · Primer bimestre · Versión 1.0-b1
+<p align="center"><strong>Catálogo, inventario y compras para un minimarket de Quito</strong></p>
+<p align="center">Aplicaciones Web Avanzadas · Primer bimestre · Versión 1.0-b1</p>
 
-El [análisis de requerimientos](docs/REQUERIMIENTOS.md) incluye los objetivos, los criterios de aceptación, el modelo de datos y el guion para la defensa. El [plan de cierre original](docs/Plan%20de%20cierre%20del%20primer%20bimestre.docx) recoge la planificación previa al cambio de autenticación.
+<p align="center">
+  <img src="src/main/resources/static/img/editorial/minimarket.jpg" width="880" alt="Estanterías de La Cesta con alimentos y artículos para el hogar">
+</p>
 
-## Stack tecnológico
+[Qué resuelve](#qué-resuelve) · [Puesta en marcha](#puesta-en-marcha) · [Variables](#variables-de-entorno) · [Arquitectura](#arquitectura) · [Pruebas](#pruebas) · [Equipo e IA](#equipo-e-ia)
 
-| Capa | Tecnología |
+## Qué resuelve
+
+La Cesta es un minimarket ficticio de Quito. Su personal necesita mantener precios, existencias y promociones al día en un solo lugar. Los clientes necesitan saber qué está disponible, consultar sus compras y conversar con la tienda.
+
+| Perfil | Funciones principales |
 | --- | --- |
-| Aplicación monolítica | Java 17, Spring Boot 3.5, Spring MVC y Maven |
-| Interfaz | Thymeleaf, HTML, CSS y JavaScript |
-| Seguridad | Supabase Auth para credenciales y Spring Security para sesiones HTTP y autorización |
-| Persistencia | Spring Data JPA, Hibernate y Flyway sobre PostgreSQL en Supabase |
-| Tiempo real | WebSocket seguro (WSS) de Spring para mensajes, presencia y avisos de agotado |
+| **Cliente** | Explora el catálogo y las ofertas, conserva su carrito entre sesiones, confirma pedidos y consulta **Mis compras** con cinco pedidos por página. Puede participar en la sala general. |
+| **Administrador** | Gestiona categorías, productos, fotos, inventario, promociones y pedidos confirmados. Puede responder en la sala general. |
+| **Repartidor** | Consulta los pedidos por entregar y actualiza su estado. |
 
-## Configurar Supabase
+[Requerimientos y criterios de aceptación](docs/REQUERIMIENTOS.md) · [Plan original del primer bimestre](docs/Plan%20de%20cierre%20del%20primer%20bimestre.docx)
 
-1. En **Connect → Session pooler**, copia el host y el usuario de la conexión PostgreSQL en el puerto 5432. En **Database Settings → SSL Configuration**, descarga el certificado CA. Usa la contraseña de la base de datos del proyecto. [Conectar a PostgreSQL](https://supabase.com/docs/guides/database/connecting-to-postgres#ssl)
-2. En **Project Settings → API Keys**, copia la clave **Publishable** y localiza el **Project URL** en **Connect**. La aplicación usa esa clave para el flujo público de Auth y mantiene las credenciales de PostgreSQL en el servidor. [Claves API de Supabase](https://supabase.com/docs/guides/api/api-keys)
-3. En **Authentication → URL Configuration**, añade las dos URL de retorno exactas. Para probar desde IntelliJ son `https://localhost:8080/confirmar` y `https://localhost:8080/restablecer`. Para desplegar, añade las rutas equivalentes bajo el dominio HTTPS de `APP_PUBLIC_URL`. Conserva las plantillas de correo con `{{ .ConfirmationURL }}` para confirmación y recuperación. El usuario debe abrir el enlace en el mismo navegador en que lo solicitó. [Flujo PKCE](https://supabase.com/docs/guides/auth/sessions/pkce-flow)
-4. En **Authentication → Sign In / Providers**, habilita correo y contraseña y mantén activa la confirmación de correo. Configura SMTP propio para enviar correos a clientes ajenos al equipo. [Contraseñas en Supabase Auth](https://supabase.com/docs/guides/auth/passwords) · [SMTP personalizado](https://supabase.com/docs/guides/auth/auth-smtp)
+## Puesta en marcha
 
-### Enviar correos de autenticación con Gmail
+Necesitas **JDK 17 o 21**, **Maven 3.6.3 o posterior**, **IntelliJ IDEA** y un proyecto de **Supabase**. [Requisitos de Spring Boot](https://docs.spring.io/spring-boot/3.5/system-requirements.html)
 
-Supabase Auth se conecta a Gmail por SMTP para enviar los enlaces de recuperación y confirmación.
+### 1. Clona y abre el proyecto
 
-1. Usa la cuenta de Google que será el remitente de La Cesta. Activa la verificación en dos pasos y crea una contraseña de aplicación con el nombre «La Cesta SMTP». [Contraseñas de aplicación de Google](https://support.google.com/accounts/answer/185833?hl=es)
-2. En Supabase, abre **Authentication → SMTP Settings** y activa **Enable custom SMTP**. [Ajustes de SMTP](https://supabase.com/dashboard/project/_/auth/smtp)
-3. Completa estos campos y guarda los cambios.
+```powershell
+git clone https://github.com/SaulTualombo01/LaCesta-ProyectoWebAvanzadas.git
+cd LaCesta-ProyectoWebAvanzadas
+```
 
-   | Campo | Valor |
-   | --- | --- |
-   | Sender email address | El correo completo de la cuenta de Google |
-   | Sender name | La Cesta |
-   | Host | smtp.gmail.com |
-   | Port | 587 (STARTTLS) |
-   | Username | El mismo correo completo de Google |
-   | Password | La contraseña de aplicación de Google |
+En IntelliJ, entra en **File → Open**, selecciona la carpeta clonada e importa el proyecto desde el [pom.xml](pom.xml). Verifica el JDK en **File → Project Structure → Project**.
 
-   Introduce el secreto directamente en Supabase y mantenlo fuera del repositorio. [Servidor SMTP de Gmail](https://support.google.com/mail/answer/7104828)
+### 2. Configura Supabase
 
-4. En **Authentication → URL Configuration**, confirma que esté permitida la URL de retorno de La Cesta (en local, https://localhost:8080/restablecer). Solicita un enlace desde **¿La olvidaste?**. Ábrelo en el mismo navegador y perfil, guarda una contraseña nueva e inicia sesión con ella.
+1. Abre **Connect → Session pooler** y copia el host y el usuario de PostgreSQL. La aplicación usa el puerto `5432`. Descarga el certificado CA en **Database → Settings → SSL Configuration**. [Conexión a PostgreSQL y TLS](https://supabase.com/docs/guides/database/connecting-to-postgres)
+2. En **Settings → API Keys**, localiza la clave **Publishable**. Copia también la URL del proyecto desde **Connect**. [Claves API](https://supabase.com/docs/guides/api/api-keys)
+3. En **Authentication → Sign In / Providers**, habilita el acceso por correo y contraseña con confirmación de correo. En **Authentication → URL Configuration**, agrega estas URL de retorno exactas. Para un despliegue, usa el dominio HTTPS de `APP_PUBLIC_URL`. [URL de retorno](https://supabase.com/docs/guides/auth/redirect-urls)
 
-Al guardar la nueva contraseña, La Cesta verifica el código de recuperación y llama a Supabase Auth. Supabase actualiza el hash de la contraseña en la misma cuenta de Authentication → Users. El UUID del usuario se conserva y el permiso de administrador sigue dependiendo de APP_ADMIN_USER_ID. Gmail se encarga del correo. [Recuperación de contraseñas en Supabase](https://supabase.com/docs/guides/auth/passwords)
+   ```text
+   https://localhost:8080/confirmar
+   https://localhost:8080/restablecer
+   ```
 
-## Ejecutar en IntelliJ IDEA
+### 3. Prepara HTTPS local y ejecuta
 
-1. Abre la carpeta como proyecto Maven y selecciona un JDK 17 a 25. Detén la ejecución anterior antes de cambiar de configuración.
-2. En **Run → Edit Configurations**, duplica **La Cesta Supabase** como configuración local. Carga las variables reales en **Environment variables**. La [.env.example](.env.example) es una plantilla para rellenar esas entradas.
-3. Prepara el certificado local siguiendo los comandos de esta sección. Ejecuta la configuración y abre [La Cesta](https://localhost:8080/ingresar). Flyway crea o actualiza el esquema `la_cesta`. La base del proyecto Supabase y los archivos históricos de la demo son independientes.
-4. Registra y confirma la cuenta que administrará la tienda. En **Authentication → Users**, copia su **User UID** y guárdalo como `APP_ADMIN_USER_ID`. Reinicia La Cesta y vuelve a iniciar sesión. Al entrar se abre el **Panel de administración** en `/admin`, donde puedes consultar existencias y usar **Añadir producto**. **Vista de tienda** abre el catálogo para revisar cómo se presenta a los clientes. Para probar el flujo de cliente en paralelo, usa otra cuenta en una ventana privada.
-
-En la terminal de IntelliJ, ejecuta estos comandos desde la carpeta del proyecto. El primer comando prepara un certificado de desarrollo para `localhost` y `127.0.0.1`. El segundo agrega su certificado público a la confianza de Windows para tu usuario.
+Desde la terminal de IntelliJ, situada en la carpeta del proyecto, ejecuta estos comandos. El primero genera el certificado local. El segundo lo agrega a los certificados de confianza del usuario de Windows.
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\prepare-local-tls.ps1
 Import-Certificate -FilePath .\data\tls\localhost.cer -CertStoreLocation Cert:\CurrentUser\Root
 ```
 
-Si tu JDK no está en `JAVA_HOME` o en `PATH`, añade `-JdkPath` con la ruta del JDK de IntelliJ al primer comando. El almacén y su contraseña se guardan en `data/tls`, excluido de Git. El chat abre una conexión `wss://localhost:8080/ws/chat` desde la página HTTPS.
+Si el script no encuentra Java, agrega `-JdkPath` con la ruta del JDK que elegiste en IntelliJ. El almacén TLS y su configuración se generan en `data/tls`.
 
-Para introducir la contraseña de PostgreSQL al arrancar, configura las demás variables en la terminal de IntelliJ y usa PowerShell 7. Esto evita guardarla en la configuración del IDE.
+1. Abre **Run → Edit Configurations → + → Application**.
+2. Usa `ec.minimarket.cesta.LaCestaApplication` como **Main class** y la carpeta del repositorio como **Working directory**. Si IntelliJ pide un módulo, selecciona `la-cesta`.
+3. En **Environment variables**, introduce las variables de [`.env.example`](.env.example) usando la tabla de [Variables de entorno](#variables-de-entorno).
+4. Pulsa **Run** y abre [La Cesta](https://localhost:8080/ingresar). Flyway prepara el esquema `la_cesta` y crea las categorías iniciales. El catálogo de un proyecto nuevo empieza vacío y se llena desde el panel de administración.
+
+<details>
+<summary>Arrancar desde PowerShell 7</summary>
+
+Configura las demás variables en la terminal. Puedes introducir la contraseña de PostgreSQL al ejecutar Maven y retirarla del entorno al terminar.
 
 ```powershell
 $env:DB_PASSWORD = Read-Host 'Contraseña de PostgreSQL' -MaskInput
@@ -73,127 +79,146 @@ try {
 }
 ```
 
-Para desplegar con TLS directo, usa un certificado válido para tu dominio y configura `APP_TLS_KEY_STORE`, `APP_TLS_KEY_STORE_PASSWORD` y `APP_PUBLIC_URL`. Si un proxy confiable termina HTTPS, configura `APP_TLS_ENABLED=false` y `APP_FORWARD_HEADERS_STRATEGY=framework`, mantén el backend privado y haz que el proxy reemplace los encabezados reenviados y admita la actualización WebSocket. El servidor exige que la solicitud del chat llegue identificada como segura.
+</details>
 
-## Fotos del catálogo
+### 4. Habilita la cuenta administradora
 
-Entra como administrador y abre **Añadir producto** o **Editar producto**. En **Foto del producto**, selecciona un JPG o PNG de hasta 5 MB y 24 megapíxeles. Puedes revisar la vista previa antes de guardar. Para reemplazar una foto, selecciona otro archivo. Para retirarla, marca **Quitar la foto actual al guardar**.
+Registra y confirma una cuenta. En **Authentication → Users**, copia su **User UID** y asígnalo a `APP_ADMIN_USER_ID`. Reinicia La Cesta e inicia sesión. El **Panel de administración** se abre en `/admin`.
 
-Los productos sin imagen muestran **Sin foto** hasta que el administrador suba un archivo.
+Para probar cliente y administrador a la vez, usa dos perfiles del navegador o una ventana normal y otra privada. Las pestañas del mismo perfil comparten la sesión.
 
-## Carrito por pasos, mapa de Quito y módulo de entregas
+### Correo con Gmail y recuperación de contraseña
 
-El flujo de compra en `/carrito` está organizado en tres pasos conectados con la pasarela PayPhone y el despacho a domicilio:
+1. En la cuenta remitente de Google, activa la verificación en dos pasos y genera una contraseña de aplicación para **La Cesta SMTP**. [Contraseñas de aplicación de Google](https://support.google.com/accounts/answer/185833?hl=es)
+2. En [**Authentication → SMTP Settings**](https://supabase.com/dashboard/project/_/auth/smtp), activa **Enable custom SMTP**, completa estos campos y guarda. [SMTP de Supabase](https://supabase.com/docs/guides/auth/auth-smtp) · [Servidor SMTP de Gmail](https://support.google.com/mail/answer/7104828)
 
-1. **Paso 1 · Carrito:** Permite ajustar cantidades mediante AJAX sin recargar la página (validando contra el `stock` disponible), quitar productos y consultar en tiempo real el subtotal regular, el descuento por promociones y el total a pagar. El carrito se guarda por usuario en `la_cesta.carritos`.
-2. **Paso 2 · Dirección y mapa de Quito:** Incluye un selector interactivo delimitado al Distrito Metropolitano de Quito (Quito y Valles) construido con **Leaflet** alojado localmente (`/vendor/leaflet/`) y teselas de **Esri World Street Map**. Ofrece buscador con autocompletado y geocodificación inversa a través del backend (`/carrito/mapa/buscar` y `/carrito/mapa/reversa`), botón de geolocalización actual y acceso directo a **Google Maps**.
-3. **Paso 3 · Pago PayPhone:** Al confirmar los datos de entrega (`direccion`, `telefono` y `referencia` opcional), la compra continúa en `/pagos` para completar el cobro y persistir el pedido en `la_cesta.pedidos` y `la_cesta.pedido_detalles`.
+   | Campo | Valor |
+   | --- | --- |
+   | Sender email address y Username | El correo completo de Google |
+   | Sender name | `La Cesta` |
+   | Host | `smtp.gmail.com` |
+   | Port | `465` con SSL o `587` con STARTTLS |
+   | Password | La contraseña de aplicación que generó Google |
 
-Para el seguimiento posterior a la compra:
+3. En [**Authentication → Emails → Templates → Reset password**](https://supabase.com/dashboard/project/_/auth/templates/reset-password), revisa el asunto **Restablece tu contraseña en La Cesta** y el botón **Restablecer contraseña**. Conserva `{{ .ConfirmationURL }}` al recrear o modificar la plantilla verde y crema. [Variables de plantillas](https://supabase.com/docs/guides/auth/auth-email-templates)
+4. Solicita el enlace desde **¿La olvidaste?**. Ábrelo en el mismo navegador y perfil, y completa el cambio dentro de los **20 minutos** posteriores a la solicitud.
 
-- **Administrador (`/admin/pedidos`):** Consulta el listado de pedidos confirmados, sus productos, dirección, monto total y estado actual (`En espera` o `Entregado`).
-- **Repartidor (`ROLE_DELIVERY` en `/entregas`):** Cuenta con un panel exclusivo donde visualiza los pedidos por despachar, puede ubicar cada dirección en el mapa interactivo de Quito o abrir la ruta en **Google Maps**, y actualizar el estado entre **En espera** y **Entregado**.
-
-## Consultar los datos en Supabase
-
-Abre **Table Editor**, selecciona el esquema `la_cesta` y entra en `productos`. Flyway crea el esquema en el primer arranque conectado. Consulta los usuarios en **Authentication → Users**. [Base de datos en el panel de Supabase](https://supabase.com/docs/guides/database/overview)
-
-También puedes consultar el catálogo desde **SQL Editor** con esta consulta de solo lectura.
-
-```sql
-select id, nombre, categoria, precio, stock
-from la_cesta.productos
-order by id desc
-limit 20;
-```
+Gmail entrega el mensaje. Spring intercambia el código PKCE con Supabase Auth, que actualiza el hash de la misma cuenta en `auth.users`. El UUID del administrador se conserva. Puedes revisar el cupo de correo en [**Authentication → Rate Limits**](https://supabase.com/dashboard/project/_/auth/rate-limits). [Recuperación de contraseñas](https://supabase.com/docs/guides/auth/passwords)
 
 ## Variables de entorno
 
-[.env.example](.env.example) es la plantilla pública. Introduce los valores reales en **Environment variables** de una configuración local de IntelliJ, o configúralos en el entorno del proceso que ejecuta Spring Boot.
+Carga los valores reales en la configuración local de IntelliJ o en el entorno del proceso. [`.env.example`](.env.example) contiene los nombres de referencia.
 
-| Variable | Uso |
+| Variable | Valor o propósito |
 | --- | --- |
-| `DB_HOST` | Host del Session pooler, sin protocolo ni puerto. La aplicación fija el puerto 5432 y `sslmode=verify-full`. |
-| `DB_USER` | Usuario de PostgreSQL, con permisos sobre el esquema de la aplicación. |
-| `DB_PASSWORD` | Contraseña de PostgreSQL. |
-| `DB_SSL_ROOT_CERT` | Ruta al certificado CA descargado de Supabase. |
-| `SUPABASE_URL` | Origen HTTPS del proyecto, por ejemplo `https://PROJECT_REF.supabase.co`. |
-| `SUPABASE_PUBLISHABLE_KEY` | Clave `sb_publishable_…` para llamar a Supabase Auth. |
-| `APP_ADMIN_USER_ID` | UUID del usuario de Supabase Auth autorizado para administrar el catálogo. Si queda vacío, las cuentas tienen acceso de cliente. |
-| `APP_PUBLIC_URL` | Origen de La Cesta para enlaces de correo. El valor local es `https://localhost:8080`. |
-| `APP_TLS_ENABLED` | `true` por defecto. Usa `false` si un proxy de confianza termina TLS. |
-| `APP_TLS_KEY_STORE` | Ubicación del almacén PKCS#12 cuando Spring gestiona HTTPS. La configuración local usa `data/tls/localhost.p12`. |
-| `APP_TLS_KEY_STORE_PASSWORD` | Contraseña del almacén PKCS#12. El script de desarrollo la guarda en `data/tls/local.properties`. |
-| `APP_FORWARD_HEADERS_STRATEGY` | `none` por defecto. Usa `framework` si un proxy confiable gestiona HTTPS y reenvía los encabezados. |
+| `DB_HOST` | Host del **Session pooler**, sin protocolo ni puerto. JDBC usa `5432` y `sslmode=verify-full`. |
+| `DB_USER` | Usuario indicado por el **Session pooler**. |
+| `DB_PASSWORD` | Contraseña de PostgreSQL del proyecto Supabase. |
+| `DB_SSL_ROOT_CERT` | Ruta absoluta al certificado CA de Supabase. |
+| `SUPABASE_URL` | URL de origen del proyecto Supabase, con HTTPS. |
+| `SUPABASE_PUBLISHABLE_KEY` | Clave pública `sb_publishable_…` del proyecto. |
+| `APP_PUBLIC_URL` | Origen de La Cesta. En local usa `https://localhost:8080`. |
+| `APP_ADMIN_USER_ID` | User UID de la cuenta administradora. Se puede dejar vacío para probar como cliente. |
+| `APP_TLS_ENABLED` | `true` por defecto. Usa `false` si un proxy confiable termina TLS. |
+| `APP_TLS_KEY_STORE` | Ruta al almacén PKCS#12. En local apunta a `data/tls/localhost.p12`. |
+| `APP_TLS_KEY_STORE_PASSWORD` | Contraseña del almacén TLS. El script local la guarda en `data/tls/local.properties`. |
+| `APP_FORWARD_HEADERS_STRATEGY` | `none` por defecto. Usa `framework` cuando un proxy confiable reemplaza los encabezados reenviados. |
+| `APP_PAYPHONE_TOKEN` y `APP_PAYPHONE_STORE_ID` | Credenciales opcionales para pagos reales. El modo demo funciona cuando falta alguna. |
+| `APP_PAYPHONE_API_URL`, `APP_PAYPHONE_STORE_NAME`, `APP_PAYPHONE_CURRENCY` y `APP_PAYPHONE_REFERENCE_PREFIX` | Ajustes del proveedor y de la referencia de pago. La moneda predeterminada es `USD`. |
 
-## Credenciales y datos de prueba
+Introduce la contraseña de aplicación de Google directamente en **SMTP Settings** de Supabase. Para un despliegue, configura las URL HTTPS públicas y un certificado válido en Spring o en un proxy confiable que admita WebSocket.
 
-Publica solo `.env.example` con valores de muestra. Guarda las contraseñas, los tokens y las claves privadas fuera del repositorio. Usa cuentas, mensajes y datos de una PYME ficticia para las pruebas. Para publicar datos o fotos de una PYME real, obtén autorización y retira cualquier dato personal.
+## Arquitectura
 
-Desde la carpeta del proyecto, revisa los archivos preparados para el commit con `git diff --cached --name-only -- .`. Excluye archivos `.env` reales, configuraciones locales de IntelliJ, bases de datos, volcados, capturas y logs con datos o credenciales. `.gitignore` protege archivos sin seguimiento. Si uno ya está bajo seguimiento, retíralo del índice antes de publicar.
-
-Si se expone una credencial, revócala o cambia la contraseña desde el servicio correspondiente. Configura el reemplazo en el entorno local o de despliegue y verifica que el valor anterior haya quedado inválido. Si se publicó en Git, coordina con el equipo su retirada del historial y la revisión de las copias compartidas.
-
-Supabase Auth guarda las contraseñas como hashes BCrypt. Spring intercambia las credenciales por HTTPS y valida el JWT de acceso con el endpoint de usuario de Supabase Auth. La verificación se aplica al inicio de sesión y a los enlaces PKCE. Spring mantiene su propia sesión con cookie HttpOnly y SameSite. El JWT solo se usa en el servidor y se descarta tras el uso. El permiso de administrador depende del UUID verificado y configurado por el operador. JPA usa parámetros en sus consultas y JDBC verifica el certificado y el host. La migración de PostgreSQL mantiene las tablas de la aplicación fuera del acceso de los roles de la Data API y habilita RLS como defensa adicional. Supabase cifra los datos del proyecto en reposo. [Seguridad de Supabase](https://supabase.com/security) · [SSL de pgJDBC](https://jdbc.postgresql.org/documentation/ssl/)
-
-## Consulta periódica
-
-La automatización **Consulta periódica de La Cesta en Supabase** ejecuta `SELECT 1` cada seis horas desde Codex. El monitor es de solo lectura y funciona independientemente de IntelliJ mientras el programador local de Codex esté disponible. Los proyectos gratuitos siguen sujetos a la política de pausa de Supabase. [Política de pausa de proyectos](https://supabase.com/docs/guides/platform/free-project-pausing)
-
-## Cómo fluye una operación
+| Capa | Tecnología |
+| --- | --- |
+| Aplicación web monolítica | Java, Spring Boot 3.5, Spring MVC y Maven |
+| Vistas | Thymeleaf, HTML, CSS y JavaScript |
+| Autenticación y roles | Supabase Auth y Spring Security |
+| Datos | PostgreSQL en Supabase, Spring Data JPA, Hibernate, JDBC y Flyway |
+| Chat | WebSocket nativo de Spring sobre WSS |
+| Integraciones | Gmail SMTP mediante Supabase Auth y PayPhone en modo demo o real |
 
 ```mermaid
 flowchart LR
-    N[Navegador]
-    subgraph S[La Cesta · un proceso Spring Boot]
-        A[Spring Security]
-        M[Controladores MVC]
-        T[Vistas Thymeleaf]
-        W[WebSocket nativo]
-        D[Servicios y repositorios JPA]
+    B["Navegador"]
+    subgraph APP["La Cesta · Spring Boot"]
+        S["Spring Security"]
+        M["Spring MVC"]
+        T["Thymeleaf"]
+        W["WebSocket nativo"]
+        D["Servicios, JPA y JDBC"]
     end
-    U[Supabase Auth]
-    P[(PostgreSQL en Supabase)]
-    N <-->|HTTP y sesión| A
-    A --> M
-    A -->|HTTPS y PKCE| U
+    A["Supabase Auth"]
+    P[("PostgreSQL")]
+    G["Gmail SMTP"]
+    Q["PayPhone"]
+    B <-->|"HTTPS y sesión"| S
+    S --> M
+    S -->|"Roles cliente y administrador"| W
+    B <-->|"WSS"| W
     M --> T
+    T --> B
     M --> D
-    T --> N
-    N <-->|Upgrade autenticado y mensajes| W
-    A --> W
     W --> D
-    D <-->|JDBC| P
-    D -->|Producto agotado después del commit| W
+    D <-->|"JDBC con TLS"| P
+    D -->|"Aviso de agotado tras confirmar"| W
+    S <-->|"Autenticación"| A
+    M -->|"Recuperación PKCE"| A
+    A --> G
+    D <-->|"Pago real"| Q
 ```
 
-1. Spring Security autentica al usuario en Supabase Auth y crea la sesión de La Cesta. Thymeleaf renderiza el catálogo en el servidor.
-2. Un administrador guarda un producto. Spring valida el formulario y verifica que la foto se pueda leer como JPG o PNG. Si hay una foto nueva, la convierte a JPEG optimizado y la guarda en la misma transacción del producto. JPA usa el número de versión para evitar que dos ediciones sobrescriban sus cambios.
-3. En la sala general, el navegador solicita cambiar de HTTP a WebSocket. Spring autentica la sesión y comprueba el origen. El servidor envía el historial y la cantidad de usuarios distintos conectados.
-4. Un usuario envía texto. El servidor normaliza y valida el contenido, lo guarda y lo distribuye a la sala. El navegador agrega el texto al historial sin recargar.
-5. Si un producto pasa de stock positivo a cero, el mismo servidor publica el aviso en la sala después de que se confirme la transacción.
+- **Catálogo e inventario.** Los administradores suben fotos JPG o PNG de hasta **5 MB y 24 megapíxeles**. Spring convierte la foto a JPEG y JPA comprueba la versión del producto para proteger las ediciones concurrentes. Los productos sin imagen muestran **Sin foto**.
+- **Carrito y pedidos.** Se guardan por cuenta en `la_cesta.carritos`. El flujo de `/carrito` se divide en pasos: **Paso 1** (productos y resumen en tiempo real por AJAX), **Paso 2** (datos de entrega con mapa interactivo de Quito basado en **Leaflet** local, teselas de **Esri World Street Map**, geocodificación vía `/carrito/mapa/**` y enlace a **Google Maps**) y **Paso 3** (pago en `/pagos` con **PayPhone**). La confirmación comprueba el stock dentro de una transacción y usa un identificador por intento de compra para evitar pedidos duplicados. El administrador supervisa los pedidos en `/admin/pedidos` y el rol **Repartidor (`ROLE_DELIVERY`)** gestiona las entregas en `/entregas` con visor de mapa de Quito y cambio de estado (`En espera` / `Entregado`).
+- **Chat.** Spring autoriza los roles cliente y administrador antes de abrir `/ws/chat`. El servidor guarda los mensajes y los distribuye junto con presencia e indicadores de escritura.
+- **Credenciales.** Spring verifica el JWT de Supabase al autenticar y al intercambiar un enlace PKCE. La aplicación usa una cookie de sesión Secure, HttpOnly y SameSite. El servidor valida los formularios y las consultas enlazan los valores como parámetros. [Seguridad de Supabase](https://supabase.com/security) · [SSL en pgJDBC](https://jdbc.postgresql.org/documentation/ssl/)
 
 ### Modelo de datos
 
 ```mermaid
 erDiagram
-    PRODUCTOS ||--o| PRODUCTO_IMAGEN : "tiene"
+    CATEGORIAS ||--o{ PRODUCTOS : agrupa
+    PRODUCTOS ||--o| PRODUCTO_IMAGEN : tiene
+    PRODUCTOS ||--o{ PEDIDO_DETALLES : aparece_en
+    PEDIDOS ||--o{ PEDIDO_DETALLES : contiene
+
+    CATEGORIAS {
+        bigint id PK
+        string codigo UK
+        string nombre
+        boolean activo
+    }
     PRODUCTOS {
         bigint id PK
+        string categoria FK
         string nombre
-        string categoria
         decimal precio
         int stock
         decimal precio_promocional
-        uuid imagen_revision
     }
     PRODUCTO_IMAGEN {
         bigint producto_id PK, FK
         bytes contenido
     }
-    AUTH_USERS {
-        uuid id PK
-        string email UK
+    PEDIDOS {
+        bigint id PK
+        uuid usuario_id
+        uuid intento_compra
+        decimal total
+        string estado
+    }
+    PEDIDO_DETALLES {
+        bigint id PK
+        bigint pedido_id FK
+        bigint producto_id FK
+        int cantidad
+        decimal precio_unitario
+    }
+    CARRITOS {
+        uuid usuario_id PK
+        uuid intento_compra
+        text cantidades
     }
     CHAT_MESSAGE {
         bigint id PK
@@ -203,7 +228,7 @@ erDiagram
     }
 ```
 
-El chat guarda el nombre visible del autor al enviar el mensaje. Supabase gestiona las identidades en `auth.users`. La tabla `la_cesta.app_user` queda como registro de la versión anterior y la aplicación ya no la consulta. Flyway aplica el esquema desde [db/migration](src/main/resources/db/migration) y las restricciones propias de PostgreSQL desde [db/postgresql](src/main/resources/db/postgresql).
+`carritos.usuario_id` y `pedidos.usuario_id` se refieren al UUID de Supabase Auth. El catálogo, el chat y los pedidos están en `la_cesta`. Flyway aplica las [migraciones comunes](src/main/resources/db/migration) y las [específicas de PostgreSQL](src/main/resources/db/postgresql).
 
 ## Pruebas
 
@@ -212,36 +237,61 @@ mvn test
 mvn package
 ```
 
-Las pruebas automatizadas usan H2 en memoria y respuestas simuladas de Supabase Auth. Cubren autenticación, PKCE, permisos, validación, CRUD, fotos, paginación, edición concurrente y WebSocket. El JAR se genera en `target/la-cesta-1.0-b1.jar` y utiliza PostgreSQL al ejecutarse.
+La suite utiliza **H2 en memoria** y respuestas simuladas de Supabase Auth. Cubre permisos, recuperación PKCE, validación, CRUD de productos, fotos, carrito, historial paginado y conexiones WSS. El JAR se genera en `target/la-cesta-1.0-b1.jar`.
 
-En una verificación previa en Brave se comprobó el catálogo con fotos a 390, 768 y 1440 px, además de la vista previa, la carga, el reemplazo y la retirada de imágenes. Para verificar un proyecto remoto, ejecuta el monolito con sus variables, confirma un correo, inicia sesión, guarda un producto y comprueba la fila en Table Editor.
+| Flujo | Comprobación manual |
+| --- | --- |
+| Recuperación | Solicita el correo, abre el enlace en el mismo navegador e inicia sesión con la contraseña nueva. |
+| Catálogo e inventario | Crea un producto con foto desde el panel, consulta el catálogo como cliente y comprueba el stock. |
+| Compra | Agrega productos, vuelve a iniciar sesión para comprobar el carrito, confirma un pedido en modo demo y revisa **Mis compras**. |
+| Chat y entrega | Prueba el chat entre cliente y administrador en perfiles distintos. Comprueba el estado de un pedido en la vista de reparto. |
 
-### Medición local
+<details>
+<summary>Consultar el catálogo en Supabase</summary>
 
-Se ejecutó una consulta JDBC de la primera página de Bebidas sobre 10 000 productos ficticios en H2 2.3.232 en memoria, con Java 23. Se calentó la consulta 20 veces y se midieron otras 100 ejecuciones, incluida la lectura de las ocho filas. La mediana fue **0,034 ms** y el percentil 95 fue **0,071 ms**.
+En **Table Editor**, selecciona `la_cesta → productos`. Las cuentas están en **Authentication → Users**. Para consultar las últimas fichas desde **SQL Editor**, ejecuta:
 
 ```sql
-SELECT id, nombre
-FROM productos
-WHERE categoria = 'BEBIDAS'
-ORDER BY id DESC
-LIMIT 8;
+select p.id, p.nombre, c.nombre as categoria, p.precio, p.stock
+from la_cesta.productos p
+join la_cesta.categorias c on c.codigo = p.categoria
+order by p.id desc
+limit 20;
 ```
 
-`EXPLAIN ANALYZE` confirmó el uso del índice `productos_categoria_id_idx` en el filtro. La medición es local y cubre la consulta SQL de la página.
+La comprobación periódica de conectividad `SELECT 1` se ejecuta desde una automatización de Codex.
 
-## Integrantes
+</details>
+
+<details>
+<summary>Medición de referencia en H2</summary>
+
+Una prueba local cargó 10 000 productos ficticios y consultó ocho productos de Bebidas. Tras 20 consultas de calentamiento, 100 ejecuciones dieron una mediana de **0,034 ms** y un percentil 95 de **0,071 ms**. `EXPLAIN ANALYZE` confirmó el uso del índice `productos_categoria_id_idx`. Los tiempos corresponden a la consulta en H2 en memoria con Java 23.
+
+</details>
+
+## Credenciales y datos
+
+- Versiona únicamente `.env.example` con valores de ejemplo. Mantén las contraseñas de PostgreSQL y Gmail, los tokens de PayPhone, los archivos `.env` reales, las claves privadas y los datos personales fuera de Git.
+- Usa cuentas, mensajes y datos ficticios para las pruebas. Solicita autorización antes de publicar información o fotografías de una PYME real.
+- Revisa los archivos preparados con `git diff --cached --name-only`. Si una credencial se publica, revócala o reemplázala en su servicio, actualiza el entorno y coordina su retirada del historial.
+
+## Equipo e IA
+
+### Integrantes
 
 | Integrante | Rol | Responsabilidad |
 | --- | --- | --- |
 | **Saúl Tualombo** | Arquitectura, seguridad y ofertas | Base del monolito Spring Boot, Supabase Auth/JWT, TLS local, SMTP con Gmail, portada editorial, módulo de ofertas (`/ofertas`, `/admin/ofertas`), validaciones y mejoras de checkout |
 | **Priscila Pazmiño** | Categorías y modelo de catálogo | Gestión dinámica de categorías (`/admin/categorias`), refactorización del esquema (`V9`/`V10`) y filtros de catálogo |
-| **Julián Narváez** | Carrito, pedidos y logística Delivery | Carrito por pasos con mapa interactivo de Quito, persistencia de pedidos y detalles (`V11`), supervisión en `/admin/pedidos` y módulo de repartidor (`ROLE_DELIVERY`, `/entregas` con mapa) |
+| **Julián Narváez** | Carrito, pedidos y logística Delivery | Carrito por pasos con mapa interactivo de Quito (Leaflet/Esri), persistencia de pedidos y detalles (`V11`), supervisión en `/admin/pedidos` y módulo de repartidor (`ROLE_DELIVERY`, `/entregas` con mapa) |
 | **Jonatan Claudio** | Pasarela de pagos PayPhone | Integración con API PayPhone (`Prepare`/`Confirm`), interfaz de pago (`/pagos`), comprobante, historial de compras (`/pagos/historial`) y suite `PaymentTest` |
 | **Jimmy Arias** | Tiempo real, UX de chat y rendimiento | Mejoras en `/chat` sobre `WSS` (burbujas, insignia `Personal`, presencia en vivo, indicador `typing`, filtro, consultas rápidas, tarjetas de aviso de stock agotado), `ChatTest` y pruebas de rendimiento |
 
-## Uso de IA
+### Uso de IA
 
-Se utilizó Codex y sus subagentes para plantear los requisitos, redactar la documentación e implementar y verificar la aplicación. Se aplicó [Ponytail](https://github.com/dietrichgebert/ponytail) para reducir la complejidad del código, y se consultaron [Taste Skill](https://www.tasteskill.dev/) e [Impeccable](https://github.com/pbakaus/impeccable) para la jerarquía visual, los estados de interfaz y la revisión responsiva. El emblema de la tienda, la portada y las fotos ilustrativas de los productos ficticios se generaron con ImageGen. Las tres fotografías del carrusel también se generaron con ImageGen. La nueva portada toma del video de OraSì la composición a todo el ancho, los bordes orgánicos y el ritmo de las secciones. Las cuatro imágenes editoriales y el banner de surtido general se generaron con ImageGen como escenas propias de La Cesta. Los cambios de diapositiva, la entrada al desplazarse y el destello de los botones adaptan patrones de [Frontend Animations](https://github.com/pulkit-30/Frontend-Animations). La portada incluye pausa, navegación por teclado y respeto por la preferencia de movimiento reducido. Los títulos usan [Barlow Condensed](https://github.com/google/fonts/tree/main/ofl/barlowcondensed), distribuida con su licencia SIL OFL. El equipo debe revisar, probar y poder explicar y modificar el código que presenta.
-
-Adicionalmente, se utilizó **Antigravity (con Gemini)** como asistente de desarrollo para implementar y depurar el módulo de carrito por pasos (`/carrito`), la integración del mapa interactivo de Quito (Leaflet local, Esri World Street Map y endpoints de geocodificación en `/carrito/mapa/**`), la migración `V11__pedidos.sql`, la vista de pedidos en administración (`/admin/pedidos`), el perfil y panel de repartidor (`ROLE_DELIVERY` en `/entregas`), el diagrama entidad-relación en PlantUML y las pruebas automatizadas en `CarritoTest`. Todo el código generado fue revisado, probado e integrado por el equipo.
+- Codex y sus subagentes apoyaron el análisis, la documentación, la implementación y la revisión. [Ponytail](https://github.com/dietrichgebert/ponytail) orientó los cambios de código pequeños.
+- **Antigravity (con Gemini)** apoyó en el módulo de carrito por pasos (`/carrito`), la integración del mapa interactivo de Quito (Leaflet local, Esri World Street Map y endpoints `/carrito/mapa/**`), la migración `V11__pedidos.sql`, la vista `/admin/pedidos`, el rol y panel de repartidor (`ROLE_DELIVERY` en `/entregas`), el diagrama entidad-relación en PlantUML y `CarritoTest`.
+- [Taste Skill](https://www.tasteskill.dev/) e [Impeccable](https://github.com/pbakaus/impeccable) sirvieron de referencia para la jerarquía visual y el diseño responsivo. [Frontend Animations](https://github.com/pulkit-30/Frontend-Animations) aportó referencias para las transiciones y la interacción.
+- ImageGen se utilizó para el emblema y las fotografías ficticias del catálogo, el carrusel y las campañas. La portada se inspiró en la composición editorial de OraSì. Los títulos usan [Barlow Condensed](https://github.com/google/fonts/tree/main/ofl/barlowcondensed), con licencia SIL OFL.
+- El equipo revisa y prueba los cambios y debe poder explicar el código que presenta.
