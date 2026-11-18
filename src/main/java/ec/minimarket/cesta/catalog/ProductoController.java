@@ -5,8 +5,9 @@ import ec.minimarket.cesta.category.CategoriaService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.PositiveOrZero;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -32,6 +33,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 class ProductoController {
 
+    private static final String CODIGO_FILTRO = "[A-Z0-9_]{0,20}";
     private static final String CATEGORIA = "categoria";
     private static final String CATEGORIAS = "categorias";
     private static final String ERROR_IMAGEN = "errorImagen";
@@ -78,7 +80,7 @@ class ProductoController {
 
     @GetMapping("/")
     String inicio(
-            @RequestParam(required = false) String categoria,
+            @RequestParam(required = false) @Pattern(regexp = CODIGO_FILTRO) String categoria,
             @RequestParam(defaultValue = "0") int page,
             HttpServletRequest request,
             Model model) {
@@ -94,7 +96,7 @@ class ProductoController {
 
     @GetMapping("/productos")
     String listado(
-            @RequestParam(required = false) String categoria,
+            @RequestParam(required = false) @Pattern(regexp = CODIGO_FILTRO) String categoria,
             @RequestParam(defaultValue = "0") int page,
             Model model) {
 
@@ -103,7 +105,7 @@ class ProductoController {
 
     @GetMapping("/ofertas")
     String ofertas(
-            @RequestParam(required = false) String categoria,
+            @RequestParam(required = false) @Pattern(regexp = CODIGO_FILTRO) String categoria,
             @RequestParam(defaultValue = "0") int page,
             HttpServletRequest request,
             Model model,
@@ -148,9 +150,7 @@ class ProductoController {
 
         return ResponseEntity.ok()
                 .contentType(MediaType.IMAGE_JPEG)
-                .cacheControl(
-                        CacheControl.maxAge(Duration.ofMinutes(10))
-                                .cachePrivate())
+                .cacheControl(CacheControl.noStore())
                 .body(productos.consultarImagen(id));
     }
 
@@ -266,7 +266,7 @@ class ProductoController {
     String eliminar(
             @PathVariable Long id,
             @RequestParam(defaultValue = "false") boolean confirmar,
-            @RequestParam Long version,
+            @RequestParam @PositiveOrZero Long version,
             RedirectAttributes aviso) {
 
         if (!confirmar) {

@@ -182,6 +182,23 @@ class MonolitoTest {
     }
 
     @Test
+    void rechazaAlRepartidorEnLaSalaYEnLaConexionWss() throws Exception {
+        mvc.perform(get("/chat").with(user("reparto").roles("DELIVERY")))
+                .andExpect(status().isForbidden());
+
+        String email = "reparto@example.test";
+        when(auth.signIn(email, PASSWORD)).thenReturn(new SupabaseAuth.AuthSession(
+                "token-solo-de-prueba",
+                new SupabaseAuth.Identity(UUID.randomUUID(), email, Instant.now(), false,
+                        Map.of("name", "Repartidor", "role", "DELIVERY"))));
+        URI endpoint = URI.create("wss://127.0.0.1:" + port + "/ws/chat");
+        assertThatThrownBy(() -> connect(email, endpoint, new Inbox()))
+                .isInstanceOf(ExecutionException.class)
+                .cause().isInstanceOfSatisfying(WebSocketHandshakeException.class,
+                        error -> assertThat(error.getResponse().statusCode()).isEqualTo(403));
+    }
+
+    @Test
     void rechazaHandshakeAnonimoYEntregaChatPorWss() throws Exception {
         mvc.perform(get("/ws/chat").with(user("cliente").roles("CUSTOMER"))
                         .header("Upgrade", "websocket").header("Connection", "Upgrade"))
@@ -195,13 +212,13 @@ class MonolitoTest {
         when(auth.signIn("ana@example.test", PASSWORD))
                 .thenReturn(identity(UUID.randomUUID(), "ana@example.test", "Ana"));
         when(auth.signIn("pablo@example.test", PASSWORD))
-                .thenReturn(identity(UUID.randomUUID(), "pablo@example.test", "Pablo"));
+                .thenReturn(identity(ADMIN, "pablo@example.test", "Pablo"));
         Inbox ana = new Inbox();
         Inbox pablo = new Inbox();
         WebSocket first = connect("ana@example.test", endpoint, ana);
         WebSocket second = connect("pablo@example.test", endpoint, pablo);
         try {
-            assertThat(ana.waitFor("presence", 2).get("count").asInt()).isEqualTo(2);
+            assertThat(ana.waitFor("presence", 2).get("staffOnline").asBoolean()).isTrue();
             first.sendText("   ", true).join();
             assertThat(ana.waitFor("error").get("text").asText()).contains("Escribe un mensaje");
             first.sendText("¿Tienen más aguacates?", true).join();

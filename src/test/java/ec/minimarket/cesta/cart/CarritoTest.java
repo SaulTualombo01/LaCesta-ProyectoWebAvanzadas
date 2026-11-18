@@ -142,12 +142,13 @@ class CarritoTest {
                         .with(cliente)
                         .with(csrf())
                         .param("intentoCompra", intento)
-                        .param("direccion", "abc")
-                        .param("telefono", "invalido"))
+                        .param("direccion", "  abc  ")
+                        .param("telefono", "+(  )--")
+                        .param("referencia", "x".repeat(251)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("cart/index"))
                 .andExpect(model().attributeHasFieldErrors(
-                        "entrega", "direccion", "telefono"));
+                        "entrega", "direccion", "telefono", "referencia"));
 
         String redirectUrl = mvc.perform(post("/carrito/confirmar")
                         .session(session)

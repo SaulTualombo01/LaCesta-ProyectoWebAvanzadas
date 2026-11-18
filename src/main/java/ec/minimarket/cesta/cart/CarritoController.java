@@ -258,7 +258,7 @@ public class CarritoController {
     }
 
     private String redirigirSegunOrigen(String origen) {
-        if (origen != null && origen.startsWith("/") && !origen.startsWith("//")) {
+        if (origen != null && origen.matches("/(?:productos(?:/[1-9][0-9]{0,18})?|ofertas)?")) {
             return "redirect:" + origen;
         }
         return REDIRECT_CARRITO;

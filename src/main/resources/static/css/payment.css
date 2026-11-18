@@ -253,6 +253,20 @@
 }
 
 /* Historial de compras */
+.history-pagination {
+  flex-wrap: wrap;
+  color: var(--green);
+  font-weight: 700;
+}
+
+.history-pagination .button { min-height: 2.75rem; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .history-page-arrow { transition: transform 160ms ease-out; }
+  .history-pagination a[rel="prev"]:is(:hover, :focus-visible) .history-page-arrow { transform: translateX(-3px); }
+  .history-pagination a[rel="next"]:is(:hover, :focus-visible) .history-page-arrow { transform: translateX(3px); }
+}
+
 .history-orders-list {
   display: grid;
   gap: 1.5rem;

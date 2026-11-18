@@ -27,7 +27,7 @@
 
   <div th:replace="~{fragments/layout :: flash}"></div>
 
-  <section class="cart-empty-state" th:if="${#lists.isEmpty(pedidos)}">
+  <section class="cart-empty-state" th:if="${pagina.isEmpty()}">
     <div class="cart-empty-copy">
       <h2>Aún no tienes compras procesadas</h2>
       <p class="hint">Cuando autorices pagos con PayPhone, podrás corroborar aquí el detalle de cada compra.</p>
@@ -36,9 +36,9 @@
     <img th:src="@{/img/editorial/ofertas-portada.jpg}" alt="" width="1200" height="800" decoding="async">
   </section>
 
-  <div class="history-orders-list" th:unless="${#lists.isEmpty(pedidos)}">
+  <div class="history-orders-list" th:unless="${pagina.isEmpty()}">
 
-    <article class="history-order-card" th:each="pedido : ${pedidos}">
+    <article class="history-order-card" th:each="pedido : ${pagina.content}">
       <div class="cart-section-header history-card-header">
         <div>
           <span class="product-category" th:text="${'Pedido #' + pedido.id}">Pedido #1</span>
@@ -110,6 +110,24 @@
     </article>
 
   </div>
+
+  <nav class="pagination history-pagination"
+       aria-label="Páginas de mis compras"
+       th:if="${pagina.totalPages > 1}">
+    <a class="button button-outline button-small"
+       rel="prev"
+       th:if="${pagina.hasPrevious()}"
+       th:href="@{/pagos/historial(page=${pagina.number - 1})}">
+      <span class="history-page-arrow" aria-hidden="true">←</span> Anterior
+    </a>
+    <span aria-current="page" th:text="|Página ${pagina.number + 1} de ${pagina.totalPages}|"></span>
+    <a class="button button-outline button-small"
+       rel="next"
+       th:if="${pagina.hasNext()}"
+       th:href="@{/pagos/historial(page=${pagina.number + 1})}">
+      Siguiente <span class="history-page-arrow" aria-hidden="true">→</span>
+    </a>
+  </nav>
 
 </main>
 

@@ -6,9 +6,10 @@ import ec.minimarket.cesta.cart.Pedido;
 import ec.minimarket.cesta.cart.ResumenCarrito;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import java.math.BigDecimal;
-import java.util.List;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -120,7 +121,7 @@ public class PaymentController {
     @GetMapping("/payphone")
     public String interfazPayPhone(
             @RequestParam(required = false) Long pedidoId,
-            @RequestParam(required = false) String tx,
+            @RequestParam(required = false) @Size(max = 256) String tx,
             HttpSession session,
             Authentication authentication,
             Model model) {
@@ -147,8 +148,8 @@ public class PaymentController {
     @PostMapping("/payphone/simular")
     public String simularRespuestaPayPhone(
             @RequestParam(required = false) Long pedidoId,
-            @RequestParam(required = false) String tx,
-            @RequestParam(defaultValue = "aprobado") String estado,
+            @RequestParam(required = false) @Size(max = 256) String tx,
+            @RequestParam(defaultValue = "aprobado") @Pattern(regexp = "(?i:aprobado|cancelado)") String estado,
             HttpSession session,
             Authentication authentication,
             RedirectAttributes redirect) {
@@ -211,7 +212,7 @@ public class PaymentController {
 
     @GetMapping("/resultado")
     public String resultadoPago(
-            @RequestParam(required = false) String tx,
+            @RequestParam(required = false) @Size(max = 256) String tx,
             HttpSession session,
             Authentication authentication,
             Model model) {
@@ -244,17 +245,15 @@ public class PaymentController {
 
     @GetMapping({"/historial", "/mis-compras"})
     public String historialCompras(
+            @RequestParam(defaultValue = "0") int page,
             Authentication authentication,
             Model model) {
 
-        UUID usuario = usuarioId(authentication);
-        List<Pedido> lista = payments.listarHistorialCompras(usuario);
-        model.addAttribute("pedidos", lista);
-        model.addAttribute("totalCompras", lista.size());
-        BigDecimal totalGastado = lista.stream()
-                .map(Pedido::getTotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        model.addAttribute("totalGastado", totalGastado);
+        Page<Pedido> pagina = payments.listarHistorialCompras(usuarioId(authentication), page);
+        if (pagina.isEmpty() && page > 0) {
+            return "redirect:/pagos/historial";
+        }
+        model.addAttribute("pagina", pagina);
         return "payment/history";
     }
 

@@ -49,11 +49,13 @@ public class CategoriaController {
 
     @PostMapping("/crear")
     public String crear(
-            @ModelAttribute Categoria categoria,
+            @RequestParam(defaultValue = "") String codigo,
+            @RequestParam(defaultValue = "") String nombre,
+            @RequestParam(required = false) String descripcion,
             RedirectAttributes redirect) {
 
         try {
-            service.crear(categoria);
+            service.crear(codigo, nombre, descripcion);
 
             redirect.addFlashAttribute(
                     EXITO, "Categoría creada correctamente");
@@ -91,11 +93,12 @@ public class CategoriaController {
     @PostMapping("/{id}/actualizar")
     public String actualizar(
             @PathVariable Long id,
-            @ModelAttribute Categoria categoria,
+            @RequestParam(defaultValue = "") String nombre,
+            @RequestParam(required = false) String descripcion,
             RedirectAttributes redirect) {
 
         try {
-            service.actualizar(id, categoria);
+            service.actualizar(id, nombre, descripcion);
 
             redirect.addFlashAttribute(
                     EXITO, "Categoría actualizada correctamente");
