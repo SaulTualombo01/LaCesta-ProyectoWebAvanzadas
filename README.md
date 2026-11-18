@@ -81,6 +81,19 @@ Entra como administrador y abre **Añadir producto** o **Editar producto**. En *
 
 Los productos sin imagen muestran **Sin foto** hasta que el administrador suba un archivo.
 
+## Carrito por pasos, mapa de Quito y módulo de entregas
+
+El flujo de compra en `/carrito` está organizado en tres pasos conectados con la pasarela PayPhone y el despacho a domicilio:
+
+1. **Paso 1 · Carrito:** Permite ajustar cantidades mediante AJAX sin recargar la página (validando contra el `stock` disponible), quitar productos y consultar en tiempo real el subtotal regular, el descuento por promociones y el total a pagar. El carrito se guarda por usuario en `la_cesta.carritos`.
+2. **Paso 2 · Dirección y mapa de Quito:** Incluye un selector interactivo delimitado al Distrito Metropolitano de Quito (Quito y Valles) construido con **Leaflet** alojado localmente (`/vendor/leaflet/`) y teselas de **Esri World Street Map**. Ofrece buscador con autocompletado y geocodificación inversa a través del backend (`/carrito/mapa/buscar` y `/carrito/mapa/reversa`), botón de geolocalización actual y acceso directo a **Google Maps**.
+3. **Paso 3 · Pago PayPhone:** Al confirmar los datos de entrega (`direccion`, `telefono` y `referencia` opcional), la compra continúa en `/pagos` para completar el cobro y persistir el pedido en `la_cesta.pedidos` y `la_cesta.pedido_detalles`.
+
+Para el seguimiento posterior a la compra:
+
+- **Administrador (`/admin/pedidos`):** Consulta el listado de pedidos confirmados, sus productos, dirección, monto total y estado actual (`En espera` o `Entregado`).
+- **Repartidor (`ROLE_DELIVERY` en `/entregas`):** Cuenta con un panel exclusivo donde visualiza los pedidos por despachar, puede ubicar cada dirección en el mapa interactivo de Quito o abrir la ruta en **Google Maps**, y actualizar el estado entre **En espera** y **Entregado**.
+
 ## Consultar los datos en Supabase
 
 Abre **Table Editor**, selecciona el esquema `la_cesta` y entra en `productos`. Flyway crea el esquema en el primer arranque conectado. Consulta los usuarios en **Authentication → Users**. [Base de datos en el panel de Supabase](https://supabase.com/docs/guides/database/overview)
@@ -219,17 +232,16 @@ LIMIT 8;
 
 ## Integrantes
 
-Completa la tabla con los nombres o alias autorizados por el equipo. Los roles son una propuesta que debe ajustarse al trabajo de cada integrante.
-
-| Integrante | Rol propuesto | Responsabilidad |
+| Integrante | Rol | Responsabilidad |
 | --- | --- | --- |
-| Por completar | Análisis y coordinación | Requerimientos, alcance y preparación de la defensa |
-| Por completar | Cuentas y seguridad | Registro, sesiones y recuperación de contraseña |
-| Por completar | Catálogo e interfaz | Productos, inventario, promociones y fotos |
-| Por completar | Tiempo real y calidad | WebSocket, pruebas y verificación del despliegue |
-
-Si el grupo tiene cinco integrantes, puede repartir el catálogo y la interfaz entre dos personas.
+| **Saúl Tualombo** | Arquitectura, seguridad y ofertas | Base del monolito Spring Boot, Supabase Auth/JWT, TLS local, SMTP con Gmail, portada editorial, módulo de ofertas (`/ofertas`, `/admin/ofertas`), validaciones y mejoras de checkout |
+| **Priscila Pazmiño** | Categorías y modelo de catálogo | Gestión dinámica de categorías (`/admin/categorias`), refactorización del esquema (`V9`/`V10`) y filtros de catálogo |
+| **Julián Narváez** | Carrito, pedidos y logística Delivery | Carrito por pasos con mapa interactivo de Quito, persistencia de pedidos y detalles (`V11`), supervisión en `/admin/pedidos` y módulo de repartidor (`ROLE_DELIVERY`, `/entregas` con mapa) |
+| **Jonatan Claudio** | Pasarela de pagos PayPhone | Integración con API PayPhone (`Prepare`/`Confirm`), interfaz de pago (`/pagos`), comprobante, historial de compras (`/pagos/historial`) y suite `PaymentTest` |
+| **Jimmy Arias** | Tiempo real, UX de chat y rendimiento | Mejoras en `/chat` sobre `WSS` (burbujas, insignia `Personal`, presencia en vivo, indicador `typing`, filtro, consultas rápidas, tarjetas de aviso de stock agotado), `ChatTest` y pruebas de rendimiento |
 
 ## Uso de IA
 
 Se utilizó Codex y sus subagentes para plantear los requisitos, redactar la documentación e implementar y verificar la aplicación. Se aplicó [Ponytail](https://github.com/dietrichgebert/ponytail) para reducir la complejidad del código, y se consultaron [Taste Skill](https://www.tasteskill.dev/) e [Impeccable](https://github.com/pbakaus/impeccable) para la jerarquía visual, los estados de interfaz y la revisión responsiva. El emblema de la tienda, la portada y las fotos ilustrativas de los productos ficticios se generaron con ImageGen. Las tres fotografías del carrusel también se generaron con ImageGen. La nueva portada toma del video de OraSì la composición a todo el ancho, los bordes orgánicos y el ritmo de las secciones. Las cuatro imágenes editoriales y el banner de surtido general se generaron con ImageGen como escenas propias de La Cesta. Los cambios de diapositiva, la entrada al desplazarse y el destello de los botones adaptan patrones de [Frontend Animations](https://github.com/pulkit-30/Frontend-Animations). La portada incluye pausa, navegación por teclado y respeto por la preferencia de movimiento reducido. Los títulos usan [Barlow Condensed](https://github.com/google/fonts/tree/main/ofl/barlowcondensed), distribuida con su licencia SIL OFL. El equipo debe revisar, probar y poder explicar y modificar el código que presenta.
+
+Adicionalmente, se utilizó **Antigravity (con Gemini)** como asistente de desarrollo para implementar y depurar el módulo de carrito por pasos (`/carrito`), la integración del mapa interactivo de Quito (Leaflet local, Esri World Street Map y endpoints de geocodificación en `/carrito/mapa/**`), la migración `V11__pedidos.sql`, la vista de pedidos en administración (`/admin/pedidos`), el perfil y panel de repartidor (`ROLE_DELIVERY` en `/entregas`), el diagrama entidad-relación en PlantUML y las pruebas automatizadas en `CarritoTest`. Todo el código generado fue revisado, probado e integrado por el equipo.

@@ -31,6 +31,29 @@
 
   <div th:replace="~{fragments/layout :: flash}"></div>
 
+  <nav class="cart-steps-bar cart-steps-standalone" aria-label="Pasos de compra">
+    <a class="cart-step-item is-done"
+       th:href="${pago.pedidoReal} ? @{/carrito/confirmado/{id}(id=${pago.pedidoId})} : @{/carrito}">
+      <span class="cart-step-num">✓</span>
+      <strong>Carrito</strong>
+    </a>
+
+    <span class="cart-step-connector is-done" aria-hidden="true"></span>
+
+    <a class="cart-step-item is-done"
+       th:href="${pago.pedidoReal} ? @{/carrito/confirmado/{id}(id=${pago.pedidoId})} : @{/carrito}">
+      <span class="cart-step-num">✓</span>
+      <strong>Entrega</strong>
+    </a>
+
+    <span class="cart-step-connector is-done" aria-hidden="true"></span>
+
+    <div class="cart-step-item is-active" aria-current="step">
+      <span class="cart-step-num">3</span>
+      <strong>PayPhone</strong>
+    </div>
+  </nav>
+
   <div class="cart-layout">
 
     <section class="cart-items-section" aria-labelledby="payment-order-title">

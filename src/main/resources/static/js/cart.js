@@ -89,7 +89,8 @@
   const pending = new Map();
   const status = cart.querySelector(".cart-sync-status");
   const retry = cart.querySelector(".cart-sync-retry");
-  const checkoutButton = checkout.querySelector(".cart-checkout-btn");
+  const checkoutButton = checkout.querySelector('button[type="submit"].cart-checkout-btn');
+  const nextStepButton = cart.querySelector("#btn-cart-next-step");
   let saving = false;
   let timer;
   let reloadNeeded = false;
@@ -122,15 +123,23 @@
     const discount = regular - total;
     cart.querySelector("#cart-items-heading").textContent =
       units === 1 ? "1 artículo seleccionado" : units + " artículos seleccionados";
-    cart.querySelector("[data-cart-units]").textContent = "Productos (" + units + ")";
-    cart.querySelector("[data-cart-regular]").textContent = money(regular);
-    cart.querySelector("[data-cart-total]").textContent = money(total);
-    const discountAmount = cart.querySelector("[data-cart-discount]");
-    discountAmount.parentElement.hidden = discount === 0;
-    discountAmount.textContent = "-" + money(discount);
-    const savings = cart.querySelector(".cart-savings-banner");
-    savings.hidden = discount === 0;
-    savings.textContent = "Estás ahorrando " + money(discount);
+    cart.querySelectorAll("[data-cart-units]").forEach(el => {
+      el.textContent = "Productos (" + units + ")";
+    });
+    cart.querySelectorAll("[data-cart-regular]").forEach(el => {
+      el.textContent = money(regular);
+    });
+    cart.querySelectorAll("[data-cart-total]").forEach(el => {
+      el.textContent = money(total);
+    });
+    cart.querySelectorAll("[data-cart-discount]").forEach(el => {
+      el.parentElement.hidden = discount === 0;
+      el.textContent = "-" + money(discount);
+    });
+    cart.querySelectorAll(".cart-savings-banner").forEach(el => {
+      el.hidden = discount === 0;
+      el.textContent = "Estás ahorrando " + money(discount);
+    });
     const badge = document.querySelector(".cart-nav-badge");
     if (badge) badge.textContent = units;
   }
@@ -140,7 +149,9 @@
     status.classList.toggle("is-error", failed);
     retry.hidden = !failed;
     retry.textContent = reloadNeeded ? "Recargar carrito" : "Reintentar";
-    checkoutButton.disabled = saving || pending.size > 0 || failed;
+    const blocked = saving || pending.size > 0 || failed;
+    if (checkoutButton) checkoutButton.disabled = blocked;
+    if (nextStepButton) nextStepButton.disabled = blocked;
   }
 
   async function flush() {
@@ -187,7 +198,7 @@
             current.precio = item.precio;
             current.precioFinal = item.precioFinal;
             current.input.max = item.stock;
-            current.row.querySelector("[data-cart-stock]").textContent = item.stock + " disponibles en tienda";
+            current.row.querySelector("[data-cart-stock]").textContent = item.stock + " disp.";
             const next = pending.get(productId);
             current.input.value = next?.quantity ?? item.cantidad;
           }

@@ -7,7 +7,10 @@
   <link rel="icon" type="image/png" th:href="@{/img/cesta-icon.png}">
   <link rel="stylesheet" th:href="@{/css/app.css}">
   <link rel="stylesheet" th:href="@{/css/admin.css}">
+  <link rel="stylesheet" th:href="@{/vendor/leaflet/leaflet.css}">
   <script th:src="@{/js/cart.js}" defer></script>
+  <script th:src="@{/vendor/leaflet/leaflet.js}" defer></script>
+  <script th:src="@{/js/delivery-map.js}" defer></script>
 </head>
 
 <body class="admin-view">
@@ -20,7 +23,7 @@
     <div>
       <p class="admin-kicker">Módulo de repartidor</p>
       <h1 id="delivery-title">Gestión de entregas</h1>
-      <p>Revisa las direcciones de envío y marca los pedidos cuando hayan sido entregados.</p>
+      <p>Revisa las direcciones de envío en el mapa de Quito y marca los pedidos cuando hayan sido entregados.</p>
     </div>
   </section>
 
@@ -41,11 +44,50 @@
     </div>
   </dl>
 
+  <section id="delivery-map-panel"
+           class="delivery-map-card"
+           aria-labelledby="delivery-map-heading"
+           hidden>
+    <div class="delivery-map-header">
+      <div>
+        <p class="admin-kicker" id="delivery-map-order">Pedido seleccionado</p>
+        <h2 id="delivery-map-heading">Ubicación de entrega en Quito</h2>
+        <p id="delivery-map-address" class="hint"></p>
+      </div>
+      <div class="delivery-map-header-actions">
+        <a id="delivery-map-google-link"
+           class="button button-small"
+           href="https://www.google.com/maps?q=-0.180653,-78.467838"
+           target="_blank"
+           rel="noopener noreferrer">
+          Abrir ruta en Google Maps ↗
+        </a>
+        <button type="button"
+                id="delivery-map-close"
+                class="button button-small button-outline">
+          Cerrar mapa
+        </button>
+      </div>
+    </div>
+
+    <div class="map-canvas-shell">
+      <div id="delivery-quito-map"
+           class="map-canvas delivery-map-canvas"
+           data-search-url="/carrito/mapa/buscar"
+           aria-label="Mapa de ubicación del pedido en Quito"></div>
+    </div>
+
+    <div class="map-status-bar">
+      <span id="delivery-map-status">Selecciona un pedido para visualizar su punto de entrega.</span>
+      <span id="delivery-map-coords" class="map-coords"></span>
+    </div>
+  </section>
+
   <section class="inventory category-inventory" aria-labelledby="delivery-list-title">
 
     <div class="admin-section-title">
       <h2 id="delivery-list-title">Pedidos para despacho</h2>
-      <p>Actualiza el estado de cada pedido entre «En espera» y «Entregado».</p>
+      <p>Visualiza la ubicación de cada cliente y actualiza el estado entre «En espera» y «Entregado».</p>
     </div>
 
     <p class="admin-empty" th:if="${#lists.isEmpty(pedidos)}">
@@ -93,6 +135,24 @@
                  th:text="${'Ref: ' + pedido.referenciaEntrega}">
             Ref: Referencia
           </small>
+          <div class="delivery-map-actions">
+            <button type="button"
+                    class="delivery-map-chip"
+                    data-delivery-map-btn
+                    th:attr="data-order-id=${pedido.id},
+                             data-address=${pedido.direccionEntrega},
+                             data-phone=${pedido.telefonoContacto},
+                             data-ref=${pedido.referenciaEntrega != null ? pedido.referenciaEntrega : ''},
+                             data-total=${'$' + pedido.total}">
+              Ver en mapa
+            </button>
+            <a class="delivery-map-chip delivery-map-chip-link"
+               th:href="@{https://www.google.com/maps/search/(api=1,query=${pedido.direccionEntrega + ', Quito, Ecuador'})}"
+               target="_blank"
+               rel="noopener noreferrer">
+              Google Maps ↗
+            </a>
+          </div>
         </td>
 
         <td>

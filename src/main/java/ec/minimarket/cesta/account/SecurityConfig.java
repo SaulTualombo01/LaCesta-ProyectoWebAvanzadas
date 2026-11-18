@@ -24,7 +24,7 @@ class SecurityConfig {
         http.authenticationProvider(authentication)
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers("/ingresar", "/registro", "/confirmar", "/recuperar", "/restablecer", "/error",
-                                "/css/**", "/js/**", "/img/**", "/fonts/**", "/favicon.ico").permitAll()
+                                "/css/**", "/js/**", "/img/**", "/fonts/**", "/vendor/**", "/favicon.ico").permitAll()
                         .requestMatchers("/admin", "/admin/**").hasRole("ADMIN")
                         .requestMatchers("/entregas", "/entregas/**").hasRole("DELIVERY")
                         .requestMatchers("/chat", "/chat/**", "/ws/chat").hasAnyRole("ADMIN", "CUSTOMER")
@@ -43,7 +43,7 @@ class SecurityConfig {
                 .headers(headers -> headers
                         .referrerPolicy(policy -> policy.policy(ReferrerPolicy.NO_REFERRER))
                         .contentSecurityPolicy(policy -> policy.policyDirectives(
-                                "default-src 'self'; img-src 'self' data:; object-src 'none'; "
+                                "default-src 'self'; img-src 'self' data: https://server.arcgisonline.com; object-src 'none'; "
                                         + "base-uri 'none'; form-action 'self'; frame-ancestors 'none'")));
 
         return http.build();
